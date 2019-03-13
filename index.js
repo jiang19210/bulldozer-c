@@ -1,6 +1,7 @@
 "use strict";
 const httpClientp = require('http-clientp');
 const httpUtils = require('./lib/http_utils');
+const debug = require('debug');
 
 function BulldozerC() {
 }
@@ -9,7 +10,7 @@ function BulldozerC() {
 global.TASK_SCHEDULE_IDS = [];
 //运行任务
 BulldozerC.prototype.setTask = function (callback, taskName, time) {
-    debug('[runTask] - 设置任务调度. 名称是[' + taskName + ']. 时间隔时间是[' + time / 1000 + 's].');
+    console.log('[runTask] - 设置任务调度. 名称是[' + taskName + ']. 时间隔时间是[' + time / 1000 + 's].');
     let id = setInterval(callback, time);
     global.TASK_SCHEDULE_IDS.push({'id': id, 'name': taskName});
 };
@@ -42,6 +43,14 @@ BulldozerC.prototype.clearTask = function (taskName) {
 global.TASK_SCHEDULE_ENABLE = true; //任务调度开关
 global.TASK_SCHEDULE_STOP = true; //任务调度开关,停止不可恢复
 global.TASK_SCHEDULE_ENABLE_LOG = true;   //任务日志
+
+
+/////////////////////
+BulldozerC.prototype.rpop = 'rpop';
+BulldozerC.prototype.spop = 'spop';
+BulldozerC.prototype.rpoplpush = 'rpoplpush';
+BulldozerC.prototype.spopsadd = 'spopsadd';
+/////////////////////
 //operation = rpop | spop | rpoplpush | spopsadd
 BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, intervalTime, operation) {
     let self = this;
@@ -52,7 +61,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
     }
     self.setTask(function () {
             if (global.TASK_SCHEDULE_ENABLE && global.TASK_SCHEDULE_STOP) {
-                let options = httpUtils.server_options('/service/' + operation);
+                let options = httpUtils.serverOptions('/worker/' + operation);
                 httpClientp.request(options, function (err, body, res, httpcontext) {
                     if (err) {
                         console.error('[handle.%]-load data is [%s]', operation, body);
@@ -113,12 +122,12 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
         handlerContext.request.options.headers = global.HANDLER_CONTEXT_HEARDES;
     }
     this.taskPostProcess(handlerContext);
+    console.log('request url %s', handlerContext.request.options.path);
     httpClientp.request_select_proxy(handlerContext, function (callback) {
         self.withProxy(function (_handlerContext) {
             callback(_handlerContext);
         }, handlerContext);
     });
-    this.taskProProcess(handlerContext);
 };
 //任务开始对请求配置进行处理,默认忽略
 BulldozerC.prototype.taskPreProcess = function (handlerContext) {
@@ -128,6 +137,7 @@ BulldozerC.prototype.taskPostProcess = function (handlerContext) {
 BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskEnd = function (handlerContext) {
+    console.log('response code %s, url %s', handlerContext.response.statusCode, handlerContext.request.options.path);
     let mainProgram = handlerContext.mainProgram;
     delete handlerContext.request.options.headers;
     delete handlerContext.request.options.agent;
