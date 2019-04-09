@@ -11,3 +11,6 @@
 
 #### 使用说明
 1. example：https://github.com/jiang19210/bulldozer-c-example
+******
+爬虫服务端：https://github.com/jiang19210/bulldozer
+爬虫完整例子：https://github.com/jiang19210/bulldozer-c-example
