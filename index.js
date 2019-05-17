@@ -64,7 +64,8 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                 let options = httpUtils.serverOptions('/worker/' + operation);
                 httpClientp.request(options, function (err, body, res, httpcontext) {
                     if (err) {
-                        console.error('[handle.%]-load data is [%s]', operation, body);
+                        console.error('[handle.%s]-load data is [%s]', operation, body);
+                        return;
                     } else {
                         debug('[handle.%]-load data is [%s]', operation, body);
                     }
