@@ -64,7 +64,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                 let options = httpUtils.serverOptions('/worker/' + operation);
                 httpClientp.request(options, function (err, body, res, httpcontext) {
                     if (err) {
-                        console.error('[handle.%s]-load data is [%s]', operation, body);
+                        console.warn('[handle.%s]-load data is [%s]', operation, body);
                         return;
                     } else {
                         debug('[handle.%s]-load data is [%s]', operation, body);
@@ -75,7 +75,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                             let bodyObj = JSON.parse(body);
                             handlerContext = JSON.parse(bodyObj.result);
                         } catch (err) {
-                            console.error('[handle.%s]-发生异常.%s', operation, err);
+                            console.warn('[handle.%s]-发生异常.%s', operation, err);
                             handlerContext = null;
                         }
                     }
@@ -84,7 +84,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         try {
                             self.startRequest(handlerContext);
                         } catch (e) {
-                            console.error('定时器调用startRequest发生异常.%s', e);
+                            console.warn('定时器调用startRequest发生异常.%s', e);
                         }
                     }
                 }, {'request': {'postdata': collection}});
@@ -109,7 +109,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
     this.taskPreProcess(handlerContext);
     let mainProgram = handlerContext.mainProgram;
     if (mainProgram == null) {
-        console.error('[taskStart]-- task start failed. the caller is null.');
+        console.warn('[taskStart]-- task start failed. the caller is null.');
         return;
     }
     if (handlerContext.request.options == null || handlerContext.request.options.path == null) {
