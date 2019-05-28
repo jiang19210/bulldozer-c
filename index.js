@@ -36,7 +36,7 @@ BulldozerC.prototype.clearTask = function (taskName) {
             global.TASK_SCHEDULE_IDS = [];
         }
     } else {
-        console.warn('[clearTask] 关闭定时器失败. 因为没有启动的定时器.the global.TASK_SCHEDULE_IDS is null.');
+        console.info('[clearTask] 关闭定时器失败. 因为没有启动的定时器.the global.TASK_SCHEDULE_IDS is null.');
     }
 };
 //----通用方法
@@ -64,7 +64,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                 let options = httpUtils.serverOptions('/worker/' + operation);
                 httpClientp.request(options, function (err, body, res, httpcontext) {
                     if (err) {
-                        console.warn('[handle.%s]-load data is [%s]', operation, body);
+                        console.info('[handle.%s]-load data is [%s]', operation, body);
                         return;
                     } else {
                         debug('[handle.%s]-load data is [%s]', operation, body);
@@ -75,7 +75,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                             let bodyObj = JSON.parse(body);
                             handlerContext = JSON.parse(bodyObj.result);
                         } catch (err) {
-                            console.warn('[handle.%s]-发生异常.%s', operation, err);
+                            console.info('[handle.%s]-发生异常.%s', operation, err);
                             handlerContext = null;
                         }
                     }
@@ -84,7 +84,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         try {
                             self.startRequest(handlerContext);
                         } catch (e) {
-                            console.warn('定时器调用startRequest发生异常.%s', e);
+                            console.info('定时器调用startRequest发生异常.%s', e);
                         }
                     }
                 }, {'request': {'postdata': collection}});
@@ -109,7 +109,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
     this.taskPreProcess(handlerContext);
     let mainProgram = handlerContext.mainProgram;
     if (mainProgram == null) {
-        console.warn('[taskStart]-- task start failed. the caller is null.');
+        console.info('[taskStart]-- task start failed. the caller is null.');
         return;
     }
     if (handlerContext.request.options == null || handlerContext.request.options.path == null) {
