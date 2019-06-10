@@ -4,8 +4,12 @@ const httpUtils = require('./lib/http_utils');
 const dbClient = require('./lib/db_client');
 const uuid = require('node-uuid');
 const debug = require('debug');
+const pmx = require('pmx');
+
+var probe = pmx.probe();
 
 function BulldozerC() {
+    global.bulldozerc_new = this;
 }
 
 //定时器id
@@ -46,7 +50,7 @@ global.TASK_SCHEDULE_ENABLE = true; //任务调度开关
 global.TASK_SCHEDULE_STOP = true; //任务调度开关,停止不可恢复
 global.TASK_SCHEDULE_ENABLE_LOG = true;   //任务日志
 global.RUN_TASK_QUEUE_NAME = null;   //运行中的任务队列名称
-
+global.metrics_counter_keys = {};
 
 /////////////////////
 BulldozerC.prototype.rpop = 'rpop';
@@ -93,6 +97,8 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         handlerContext.mainProgram = mainProgram;
                         try {
                             handlerContext.uuid = uuid();
+                            handlerContext.operation = operation;
+                            self.metrics(handlerContext, httpcontext);
                             self.startRequest(handlerContext);
                         } catch (e) {
                             console.info('定时器调用startRequest发生异常.%s', e);
@@ -149,21 +155,47 @@ BulldozerC.prototype.taskPostProcess = function (handlerContext) {
 BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskEnd = function (handlerContext) {
-    console.log('[%s] response code %s, url %s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.request.options.path);
-    let mainProgram = handlerContext.mainProgram;
-    delete handlerContext.request.options.headers;
-    delete handlerContext.request.options.agent;
-    delete handlerContext.callback;
-    //delete handlerContext.self;
-    delete handlerContext.mainProgram;
-
-    //TODO 可以存储 请求和返回的 信息
-    if (handlerContext.response.error) {
-        handlerContext.request.options.host = null;
-        handlerContext.request.options.port = null;
+    console.log('[%s] response code %s', handlerContext.uuid, handlerContext.response.statusCode);
+    if (global.bulldozerc_new.dataCheck(handlerContext)) {
+        let mainProgram = handlerContext.mainProgram;
+        delete handlerContext.request.options.headers;
+        delete handlerContext.request.options.agent;
+        delete handlerContext.callback;
+        delete handlerContext.mainProgram;
+        delete handlerContext.keyName;
+        delete handlerContext.counterSucc;
+        delete handlerContext.counterFail;
+        delete handlerContext.queueName;
+        delete handlerContext.operation;
+        //TODO 可以存储 请求和返回的 信息
+        if (handlerContext.response.error) {
+            handlerContext.request.options.host = null;
+            handlerContext.request.options.port = null;
+        }
+        let data = handlerContext.data;
+        mainProgram.emit(data.next, handlerContext);
     }
-    let data = handlerContext.data;
-    mainProgram.emit(data.next, handlerContext);
+};
+
+BulldozerC.prototype.dataCheck = function (handlerContext) {
+    if (200 === handlerContext.response.statusCode) {
+        handlerContext.counterSucc.inc();
+        return true;
+    } else {
+        handlerContext.counterFail.inc();
+        this.retry(handlerContext);
+        return false;
+    }
+};
+
+BulldozerC.prototype.retry = function (handlerContext) {
+    var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
+    var collection = {'name': handlerContext.queueName, 'data': [newHandlerContext]};
+    if (handlerContext.operation.indexOf('rpop') != -1) {
+        dbClient.lpushs(collection);
+    } else if (handlerContext.operation.indexOf('spop') != -1) {
+        dbClient.sadds(collection);
+    }
 };
 
 //优雅的暂停
@@ -188,5 +220,38 @@ setInterval(function () {
         }
     });
 }, 1000 * 30);
+
+BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
+    var queueName = httpContext.request.postdata.name;
+    handlerContext.queueName = queueName;
+    var nextName = handlerContext.data.next;
+    if (queueName && nextName) {
+        var keyName = 'bulldozer_c.' + queueName + '.' + nextName;
+        var counter = global.metrics_counter_keys[keyName];
+        if (!counter) {
+            counter = probe.counter({'name': keyName});
+            global.metrics_counter_keys[keyName] = counter;
+        }
+        counter.inc();
+        console.log('task_count:' + keyName + '=' + counter.val());
+        handlerContext.keyName = keyName;
+
+        var keyNameSucc = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'succ';
+        var counterSucc = global.metrics_counter_keys[keyNameSucc];
+        if (!counterSucc) {
+            counterSucc = probe.counter({'name': keyNameSucc});
+            global.metrics_counter_keys[keyNameSucc] = counterSucc;
+        }
+        handlerContext.counterSucc = counterSucc;
+
+        var keyNameFail = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'fail';
+        var counterFail = global.metrics_counter_keys[keyNameFail];
+        if (!counterFail) {
+            counterFail = probe.counter({'name': keyNameFail});
+            global.metrics_counter_keys[keyNameFail] = counterFail;
+        }
+        handlerContext.counterFail = counterFail;
+    }
+};
 
 module.exports = BulldozerC;

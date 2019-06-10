@@ -1,6 +1,6 @@
 {
   "name": "bulldozer-c",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "scripts": {},
   "description": "爬虫客户端",
   "dependencies": {
@@ -9,7 +9,8 @@
     "http-clientp": "1.0.25",
     "iconv-lite": "0.4.13",
     "moment": "2.16.0",
-    "node-uuid": "1.4.8"
+    "node-uuid": "1.4.8",
+    "pmx": "1.6.7"
   },
   "repository": {
     "type": "git",
