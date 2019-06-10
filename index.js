@@ -174,6 +174,8 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
         }
         let data = handlerContext.data;
         mainProgram.emit(data.next, handlerContext);
+    } else {
+        console.log('[%s] task is not runing', handlerContext.uuid);
     }
 };
 
@@ -202,7 +204,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
     }
     if (handlerContext.retry > 3) {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
-        console.warn('retry_fail_3:%s', JSON.stringify(newHandlerContext));
+        console.warn('[%s] retry_fail_3:%s', handlerContext.uuid, JSON.stringify(newHandlerContext));
     } else {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         newHandlerContext.retry = handlerContext.retry;
