@@ -77,7 +77,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         console.info('[handle.%s]-load data is [%s]', operation, body);
                         return;
                     } else {
-                        console.log('[handle.%s]-load data is [%s]', operation, body);
+                        debug('[handle.%s]-load data is [%s]', operation, body);
                     }
                     let handlerContext = null;
                     if (body != null) {
