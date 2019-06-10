@@ -178,7 +178,7 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
 };
 
 BulldozerC.prototype._dataCheck = function (handlerContext) {
-    if (200 === handlerContext.response.statusCode) {
+    if (200 === handlerContext.response.statusCode && handlerContext.response.body) {
         handlerContext.counterSucc.inc();
         return true;
     } else if (this.dataCheck()) {
@@ -195,12 +195,23 @@ BulldozerC.prototype.dataCheck = function (handlerContext) {
 };
 
 BulldozerC.prototype.retry = function (handlerContext) {
-    var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
-    var collection = {'name': handlerContext.queueName, 'data': [newHandlerContext]};
-    if (handlerContext.operation.indexOf('rpop') != -1) {
-        dbClient.lpushs(collection);
-    } else if (handlerContext.operation.indexOf('spop') != -1) {
-        dbClient.sadds(collection);
+    if (!handlerContext.retry) {
+        handlerContext.retry = 1;
+    } else {
+        ++handlerContext.retry;
+    }
+    if (handlerContext.retry > 3) {
+        var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
+        console.warn('retry_fail_3:%s', JSON.stringify(newHandlerContext));
+    } else {
+        var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
+        newHandlerContext.retry = handlerContext.retry;
+        var collection = {'name': handlerContext.queueName, 'data': [newHandlerContext]};
+        if (handlerContext.operation.indexOf('rpop') != -1) {
+            dbClient.lpushs(collection);
+        } else if (handlerContext.operation.indexOf('spop') != -1) {
+            dbClient.sadds(collection);
+        }
     }
 };
 
