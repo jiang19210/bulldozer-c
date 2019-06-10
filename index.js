@@ -1,6 +1,8 @@
 "use strict";
 const httpClientp = require('http-clientp');
 const httpUtils = require('./lib/http_utils');
+const dbClient = require('./lib/db_client');
+const uuid = require('node-uuid');
 const debug = require('debug');
 
 function BulldozerC() {
@@ -43,6 +45,7 @@ BulldozerC.prototype.clearTask = function (taskName) {
 global.TASK_SCHEDULE_ENABLE = true; //任务调度开关
 global.TASK_SCHEDULE_STOP = true; //任务调度开关,停止不可恢复
 global.TASK_SCHEDULE_ENABLE_LOG = true;   //任务日志
+global.RUN_TASK_QUEUE_NAME = null;   //运行中的任务队列名称
 
 
 /////////////////////
@@ -53,6 +56,13 @@ BulldozerC.prototype.spopsadd = 'spopsadd';
 /////////////////////
 //operation = rpop | spop | rpoplpush | spopsadd
 BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, intervalTime, operation) {
+    var name = collection.name;
+    if (!name) {
+        name = collection.name0;
+    }
+    if (name) {
+        global.RUN_TASK_QUEUE_NAME = name;
+    }
     let self = this;
     if (intervalTime) {
         intervalTime = intervalTime * 1000;
@@ -67,7 +77,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         console.info('[handle.%s]-load data is [%s]', operation, body);
                         return;
                     } else {
-                        debug('[handle.%s]-load data is [%s]', operation, body);
+                        console.log('[handle.%s]-load data is [%s]', operation, body);
                     }
                     let handlerContext = null;
                     if (body != null) {
@@ -82,6 +92,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                     if (handlerContext != null) {
                         handlerContext.mainProgram = mainProgram;
                         try {
+                            handlerContext.uuid = uuid();
                             self.startRequest(handlerContext);
                         } catch (e) {
                             console.info('定时器调用startRequest发生异常.%s', e);
@@ -123,7 +134,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
         handlerContext.request.options.headers = global.HANDLER_CONTEXT_HEARDES;
     }
     this.taskPostProcess(handlerContext);
-    console.log('request url %s', handlerContext.request.options.path);
+    console.log('[%s] request url %s, postdata %s', handlerContext.uuid, handlerContext.request.options.path, handlerContext.request.postdata);
     httpClientp.request_select_proxy(handlerContext, function (callback) {
         self.withProxy(function (_handlerContext) {
             callback(_handlerContext);
@@ -138,7 +149,7 @@ BulldozerC.prototype.taskPostProcess = function (handlerContext) {
 BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskEnd = function (handlerContext) {
-    console.log('response code %s, url %s', handlerContext.response.statusCode, handlerContext.request.options.path);
+    console.log('[%s] response code %s, url %s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.request.options.path);
     let mainProgram = handlerContext.mainProgram;
     delete handlerContext.request.options.headers;
     delete handlerContext.request.options.agent;
@@ -162,4 +173,20 @@ BulldozerC.prototype.checkSuspend = function () {
 BulldozerC.prototype.dbClient = require('./lib/db_client');
 BulldozerC.prototype.cryptoUtils = require('./lib/crypto_utils');
 BulldozerC.prototype.httpUtils = require('./lib/http_utils');
+
+setInterval(function () {
+    var queueName = global.RUN_TASK_QUEUE_NAME;
+    console.log('检测任务状态 global.RUN_TASK_QUEUE_NAME = %s', queueName);
+    if (!queueName) {
+        return;
+    }
+    dbClient.getTaskState(queueName, function (err, result, res, httpcontext) {
+        if (result.result === '0000') {
+            global.TASK_SCHEDULE_STOP = false;
+        } else {
+            global.TASK_SCHEDULE_STOP = true;
+        }
+    });
+}, 1000 * 30);
+
 module.exports = BulldozerC;

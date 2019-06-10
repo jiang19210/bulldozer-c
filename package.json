@@ -1,6 +1,6 @@
 {
   "name": "bulldozer-c",
-  "version": "0.0.12",
+  "version": "0.0.16",
   "scripts": {},
   "description": "爬虫客户端",
   "dependencies": {
@@ -11,6 +11,12 @@
     "moment": "2.16.0",
     "node-uuid": "1.4.8"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jiang19210/bulldozer-c"
+  },
+  "author": "jiang19210",
+  "license": "MIT",
   "keywords": [
     "spider",
     "爬虫"
