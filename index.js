@@ -245,31 +245,28 @@ BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
     var nextName = handlerContext.data.next;
     if (queueName && nextName) {
         var keyName = 'bulldozer_c.' + queueName + '.' + nextName;
-        var counter = global.metrics_counter_keys[keyName];
-        if (!counter) {
-            counter = probe.counter({'name': keyName});
-            global.metrics_counter_keys[keyName] = counter;
-        }
+        var counter = this.getCounter(keyName);
         counter.inc();
         console.log('task_count:' + keyName + '=' + counter.val());
         handlerContext.keyName = keyName;
 
         var keyNameSucc = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'succ';
-        var counterSucc = global.metrics_counter_keys[keyNameSucc];
-        if (!counterSucc) {
-            counterSucc = probe.counter({'name': keyNameSucc});
-            global.metrics_counter_keys[keyNameSucc] = counterSucc;
-        }
+        var counterSucc = this.getCounter(keyNameSucc);
         handlerContext.counterSucc = counterSucc;
 
         var keyNameFail = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'fail';
-        var counterFail = global.metrics_counter_keys[keyNameFail];
-        if (!counterFail) {
-            counterFail = probe.counter({'name': keyNameFail});
-            global.metrics_counter_keys[keyNameFail] = counterFail;
-        }
+        var counterFail = this.getCounter(keyNameFail);
         handlerContext.counterFail = counterFail;
     }
+};
+
+BulldozerC.prototype.getCounter = function (keyName) {
+    var counter = global.metrics_counter_keys[keyName];
+    if (!counter) {
+        counter = probe.counter({'name': keyName});
+        global.metrics_counter_keys[keyName] = counter;
+    }
+    return counter;
 };
 
 module.exports = BulldozerC;
