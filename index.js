@@ -183,6 +183,7 @@ BulldozerC.prototype._dataCheck = function (handlerContext) {
         handlerContext.counterSucc.inc();
         return true;
     } else if (this.dataCheck()) {
+        console.error('[%s] task is fail', handlerContext.uuid);
         handlerContext.counterFail.inc();
         this.retry(handlerContext);
         return false;
