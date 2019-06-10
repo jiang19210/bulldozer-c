@@ -165,7 +165,6 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
         delete handlerContext.keyName;
         delete handlerContext.counterSucc;
         delete handlerContext.counterFail;
-        delete handlerContext.queueName;
         delete handlerContext.operation;
         //TODO 可以存储 请求和返回的 信息
         if (handlerContext.response.error) {
