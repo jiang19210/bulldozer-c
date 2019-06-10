@@ -156,7 +156,7 @@ BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskEnd = function (handlerContext) {
     console.log('[%s] response code %s', handlerContext.uuid, handlerContext.response.statusCode);
-    if (global.bulldozerc_new.dataCheck(handlerContext)) {
+    if (global.bulldozerc_new._dataCheck(handlerContext)) {
         let mainProgram = handlerContext.mainProgram;
         delete handlerContext.request.options.headers;
         delete handlerContext.request.options.agent;
@@ -177,15 +177,21 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
     }
 };
 
-BulldozerC.prototype.dataCheck = function (handlerContext) {
+BulldozerC.prototype._dataCheck = function (handlerContext) {
     if (200 === handlerContext.response.statusCode) {
         handlerContext.counterSucc.inc();
         return true;
-    } else {
+    } else if (this.dataCheck()) {
         handlerContext.counterFail.inc();
         this.retry(handlerContext);
         return false;
+    } else {
+        return true;
     }
+};
+
+BulldozerC.prototype.dataCheck = function (handlerContext) {
+    return true;
 };
 
 BulldozerC.prototype.retry = function (handlerContext) {
