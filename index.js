@@ -175,20 +175,21 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
 };
 
 BulldozerC.prototype._dataCheck = function (handlerContext) {
-    if (200 === handlerContext.response.statusCode && handlerContext.response.body) {
-        handlerContext.queueSuccCounter.inc();
-        handlerContext.nextSuccCounter.inc();
-        return true;
-    } else if (this.dataCheck()) {
+    if (!this.dataCheck(handlerContext)) {
         console.error('[%s] task is fail', handlerContext.uuid);
         handlerContext.queueFailCounter.inc();
         handlerContext.nextFailCounter.inc();
         this.retry(handlerContext);
         return false;
-    } else {
+    } else if (200 === handlerContext.response.statusCode && handlerContext.response.body) {
         handlerContext.queueSuccCounter.inc();
         handlerContext.nextSuccCounter.inc();
         return true;
+    } else {
+        console.error('[%s] warn warn warn warn ', handlerContext.uuid);
+        handlerContext.queueFailCounter.inc();
+        handlerContext.nextFailCounter.inc();
+        return false;
     }
 };
 
