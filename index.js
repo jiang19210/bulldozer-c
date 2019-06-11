@@ -162,7 +162,6 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
         delete handlerContext.request.options.agent;
         delete handlerContext.callback;
         delete handlerContext.mainProgram;
-        delete handlerContext.keyName;
         delete handlerContext.counterSucc;
         delete handlerContext.counterFail;
         delete handlerContext.operation;
@@ -180,14 +179,18 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
 
 BulldozerC.prototype._dataCheck = function (handlerContext) {
     if (200 === handlerContext.response.statusCode && handlerContext.response.body) {
-        handlerContext.counterSucc.inc();
+        handlerContext.queueSuccCounter.inc();
+        handlerContext.nextSuccCounter.inc();
         return true;
     } else if (this.dataCheck()) {
         console.error('[%s] task is fail', handlerContext.uuid);
-        handlerContext.counterFail.inc();
+        handlerContext.queueFailCounter.inc();
+        handlerContext.nextFailCounter.inc();
         this.retry(handlerContext);
         return false;
     } else {
+        handlerContext.queueSuccCounter.inc();
+        handlerContext.nextSuccCounter.inc();
         return true;
     }
 };
@@ -245,19 +248,29 @@ BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
     handlerContext.queueName = queueName;
     var nextName = handlerContext.data.next;
     if (queueName && nextName) {
-        var keyName = 'bulldozer_c.' + queueName + '.' + nextName;
-        var counter = this.getCounter(keyName);
-        counter.inc();
-        console.log('task_count:' + keyName + '=' + counter.val());
-        handlerContext.keyName = keyName;
+        let queueKeyName = 'bulldozer_c.' + queueName;
+        let queueCounter = this.getCounter(queueKeyName);
+        queueCounter.inc();
 
-        var keyNameSucc = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'succ';
-        var counterSucc = this.getCounter(keyNameSucc);
-        handlerContext.counterSucc = counterSucc;
+        let nextKeyName = queueKeyName + '.' + nextName;
+        let nextCounter = this.getCounter(nextKeyName);
+        nextCounter.inc();
 
-        var keyNameFail = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'fail';
-        var counterFail = this.getCounter(keyNameFail);
-        handlerContext.counterFail = counterFail;
+        let queueSuccKeyName = 'bulldozer_c.' + queueName + '.' + 'succ';
+        let queueSuccCounter = this.getCounter(queueSuccKeyName);
+        handlerContext.queueSuccCounter = queueSuccCounter;
+
+        let nextSuccKeyName = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'succ';
+        let nextSuccCounter = this.getCounter(nextSuccKeyName);
+        handlerContext.nextSuccCounter = nextSuccCounter;
+
+        let queueFailKeyName = 'bulldozer_c.' + queueName + '.' + 'fail';
+        let queueFailCounter = this.getCounter(queueFailKeyName);
+        handlerContext.queueFailCounter = queueFailCounter;
+
+        let nextFailkeyName = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'fail';
+        let nextFailCounter = this.getCounter(nextFailkeyName);
+        handlerContext.nextFailCounter = nextFailCounter;
     }
 };
 
