@@ -162,9 +162,6 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
         delete handlerContext.request.options.agent;
         delete handlerContext.callback;
         delete handlerContext.mainProgram;
-        delete handlerContext.counterSucc;
-        delete handlerContext.counterFail;
-        delete handlerContext.operation;
         //TODO 可以存储 请求和返回的 信息
         if (handlerContext.response.error) {
             handlerContext.request.options.host = null;
