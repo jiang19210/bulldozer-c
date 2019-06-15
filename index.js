@@ -140,7 +140,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
         handlerContext.request.options.headers = global.HANDLER_CONTEXT_HEARDES;
     }
     this.taskPostProcess(handlerContext);
-    console.log('[%s] request url %s, postdata %s', handlerContext.uuid, handlerContext.request.options.path, handlerContext.request.postdata);
+    console.log('[%s] request url %s, postdata %s', handlerContext.uuid, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata));
     httpClientp.request_select_proxy(handlerContext, function (callback) {
         self.withProxy(function (_handlerContext) {
             callback(_handlerContext);
@@ -175,22 +175,16 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
 };
 
 BulldozerC.prototype._dataCheck = function (handlerContext) {
-    if (!this.dataCheck(handlerContext)) {
+    if (!handlerContext.response.statusCode || handlerContext.response.statusCode > 400 || !this.dataCheck(handlerContext)) {
         console.info('[%s] task is fail', handlerContext.uuid);
         handlerContext.queueFailCounter.inc();
         handlerContext.nextFailCounter.inc();
         this.retry(handlerContext);
         return false;
-    } else if (200 === handlerContext.response.statusCode && handlerContext.response.body) {
+    } else {
         handlerContext.queueSuccCounter.inc();
         handlerContext.nextSuccCounter.inc();
         return true;
-    } else {
-        console.info('[%s] warn warn warn warn ', handlerContext.uuid);
-        handlerContext.queueFailCounter.inc();
-        handlerContext.nextFailCounter.inc();
-        this.retry(handlerContext);
-        return false;
     }
 };
 
@@ -207,6 +201,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
     if (handlerContext.retry > 3) {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         console.error('[%s] retry_fail_3:%s', handlerContext.uuid, JSON.stringify(newHandlerContext));
+        handlerContext.retryFailCounter.inc();
     } else {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         newHandlerContext.retry = handlerContext.retry;
@@ -270,6 +265,10 @@ BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
         let nextFailkeyName = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'fail';
         let nextFailCounter = this.getCounter(nextFailkeyName);
         handlerContext.nextFailCounter = nextFailCounter;
+
+        let retryFailkeyName = 'bulldozer_c.' + queueName + '.' + 'retry_fail';
+        let retryFailCounter = this.getCounter(retryFailkeyName);
+        handlerContext.retryFailCounter = retryFailCounter;
     }
 };
 
