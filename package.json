@@ -1,6 +1,6 @@
 {
   "name": "bulldozer-c",
-  "version": "0.0.290001",
+  "version": "0.0.290002",
   "scripts": {},
   "description": "爬虫客户端",
   "dependencies": {

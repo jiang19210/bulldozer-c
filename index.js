@@ -246,27 +246,27 @@ BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
         let queueCounter = this.getCounter(queueKeyName);
         queueCounter.inc();
 
-        let nextKeyName = {'key': 'bulldozer_c', 'type': queueName + '.' + nextName};
+        let nextKeyName = {'key': 'bulldozer_c', 'type': queueName + '_' + nextName};
         let nextCounter = this.getCounter(nextKeyName);
         nextCounter.inc();
 
-        let queueSuccKeyName = {'key': 'bulldozer_c', 'type': queueName + '.succ'};
+        let queueSuccKeyName = {'key': 'bulldozer_c', 'type': queueName + '_succ'};
         let queueSuccCounter = this.getCounter(queueSuccKeyName);
         handlerContext.queueSuccCounter = queueSuccCounter;
 
-        let nextSuccKeyName = {'key': 'bulldozer_c', 'type': queueName + '.' + nextName + '.succ'};
+        let nextSuccKeyName = {'key': 'bulldozer_c', 'type': queueName + '_' + nextName + '_succ'};
         let nextSuccCounter = this.getCounter(nextSuccKeyName);
         handlerContext.nextSuccCounter = nextSuccCounter;
 
-        let queueFailKeyName = {'key': 'bulldozer_c', 'type': queueName + '.fail'};
+        let queueFailKeyName = {'key': 'bulldozer_c', 'type': queueName + '_fail'};
         let queueFailCounter = this.getCounter(queueFailKeyName);
         handlerContext.queueFailCounter = queueFailCounter;
 
-        let nextFailkeyName = {'key': 'bulldozer_c', 'type': queueName + '.' + nextName + '.fail'};
+        let nextFailkeyName = {'key': 'bulldozer_c', 'type': queueName + '_' + nextName + '_fail'};
         let nextFailCounter = this.getCounter(nextFailkeyName);
         handlerContext.nextFailCounter = nextFailCounter;
 
-        let retryFailkeyName = {'key': 'bulldozer_c', 'type': queueName + '.retry_fail'};
+        let retryFailkeyName = {'key': 'bulldozer_c', 'type': queueName + '_retry_fail'};
         let retryFailCounter = this.getCounter(retryFailkeyName);
         handlerContext.retryFailCounter = retryFailCounter;
     }
