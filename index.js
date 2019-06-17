@@ -242,43 +242,50 @@ BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
     handlerContext.queueName = queueName;
     var nextName = handlerContext.data.next;
     if (queueName && nextName) {
-        let queueKeyName = 'bulldozer_c.' + queueName;
+        let queueKeyName = {'key': 'bulldozer_c', 'type': queueName};
         let queueCounter = this.getCounter(queueKeyName);
         queueCounter.inc();
 
-        let nextKeyName = queueKeyName + '.' + nextName;
+        let nextKeyName = {'key': 'bulldozer_c', 'type': queueName + '.' + nextName};
         let nextCounter = this.getCounter(nextKeyName);
         nextCounter.inc();
 
-        let queueSuccKeyName = 'bulldozer_c.' + queueName + '.' + 'succ';
+        let queueSuccKeyName = {'key': 'bulldozer_c', 'type': queueName + '.succ'};
         let queueSuccCounter = this.getCounter(queueSuccKeyName);
         handlerContext.queueSuccCounter = queueSuccCounter;
 
-        let nextSuccKeyName = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'succ';
+        let nextSuccKeyName = {'key': 'bulldozer_c', 'type': queueName + '.' + nextName + '.succ'};
         let nextSuccCounter = this.getCounter(nextSuccKeyName);
         handlerContext.nextSuccCounter = nextSuccCounter;
 
-        let queueFailKeyName = 'bulldozer_c.' + queueName + '.' + 'fail';
+        let queueFailKeyName = {'key': 'bulldozer_c', 'type': queueName + '.fail'};
         let queueFailCounter = this.getCounter(queueFailKeyName);
         handlerContext.queueFailCounter = queueFailCounter;
 
-        let nextFailkeyName = 'bulldozer_c.' + queueName + '.' + nextName + '.' + 'fail';
+        let nextFailkeyName = {'key': 'bulldozer_c', 'type': queueName + '.' + nextName + '.fail'};
         let nextFailCounter = this.getCounter(nextFailkeyName);
         handlerContext.nextFailCounter = nextFailCounter;
 
-        let retryFailkeyName = 'bulldozer_c.' + queueName + '.' + 'retry_fail';
+        let retryFailkeyName = {'key': 'bulldozer_c', 'type': queueName + '.retry_fail'};
         let retryFailCounter = this.getCounter(retryFailkeyName);
         handlerContext.retryFailCounter = retryFailCounter;
     }
 };
 
 BulldozerC.prototype.getCounter = function (keyName) {
+    if (typeof keyName === 'object') {
+        keyName = this.formatMetricsKeyName(keyName);
+    }
     var counter = global.metrics_counter_keys[keyName];
     if (!counter) {
         counter = probe.counter({'name': keyName});
         global.metrics_counter_keys[keyName] = counter;
     }
     return counter;
+};
+
+BulldozerC.prototype.formatMetricsKeyName = function (keyName) {
+    return keyName.key + '{type="' + keyName.type + '",}';
 };
 
 module.exports = BulldozerC;
