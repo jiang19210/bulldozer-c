@@ -126,7 +126,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
     this.taskPreProcess(handlerContext);
     let mainProgram = handlerContext.mainProgram;
     if (mainProgram == null) {
-        console.info('[taskStart]-- task start failed. the caller is null.');
+        console.warn('[taskStart]-- task start failed. the caller is null.');
         return;
     }
     if (handlerContext.request.options == null || handlerContext.request.options.path == null) {
@@ -140,7 +140,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
         handlerContext.request.options.headers = global.HANDLER_CONTEXT_HEARDES;
     }
     this.taskPostProcess(handlerContext);
-    console.log('[%s] request url %s, postdata %s', handlerContext.uuid, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata));
+    console.log('[%s] request url %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata), handlerContext.retry);
     httpClientp.request_select_proxy(handlerContext, function (callback) {
         self.withProxy(function (_handlerContext) {
             callback(_handlerContext);
@@ -170,13 +170,25 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
         let data = handlerContext.data;
         mainProgram.emit(data.next, handlerContext);
     } else {
-        console.info('[%s] task is not runing', handlerContext.uuid);
+        console.info('[%s] task is fail', handlerContext.uuid);
     }
 };
 
 BulldozerC.prototype._dataCheck = function (handlerContext) {
-    if (!handlerContext.response.statusCode || handlerContext.response.statusCode > 400 || !this.dataCheck(handlerContext)) {
-        console.info('[%s] task is fail', handlerContext.uuid);
+    let statusCode = handlerContext.response.statusCode;
+    if (!statusCode || !this.dataCheck(handlerContext) || handlerContext.response.statusCode !== 200) {
+        if (statusCode === 404) {
+            handlerContext.retry = 10;
+        }
+        console.warn('[%s] %s_request_fail_retry_%s, url = %s , postdata = %s', handlerContext.uuid, statusCode, handlerContext.retry, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata));
+        if (!statusCode) {
+            statusCode = 152;
+        }
+        this.getCounter({
+            'key': 'bulldozer-c',
+            'type': handlerContext.queueName + '_' + handlerContext.data.next,
+            'statusCode': statusCode
+        }).inc();
         handlerContext.queueFailCounter.inc();
         handlerContext.nextFailCounter.inc();
         this.retry(handlerContext);
@@ -200,7 +212,9 @@ BulldozerC.prototype.retry = function (handlerContext) {
     }
     if (handlerContext.retry > 3) {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
-        console.error('[%s] retry_fail_3:%s', handlerContext.uuid, JSON.stringify(newHandlerContext));
+        if (handlerContext.retry < 5) {
+            console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
+        }
         handlerContext.retryFailCounter.inc();
     } else {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
@@ -211,6 +225,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
         } else if (handlerContext.operation.indexOf('spop') != -1) {
             dbClient.sadds(collection);
         }
+        handlerContext.retryCounter.inc();
     }
 };
 
@@ -269,6 +284,10 @@ BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
         let retryFailkeyName = {'key': 'bulldozer_c', 'type': queueName + '_retry_fail'};
         let retryFailCounter = this.getCounter(retryFailkeyName);
         handlerContext.retryFailCounter = retryFailCounter;
+
+        let retrykeyName = {'key': 'bulldozer_c', 'type': queueName + '_retry'};
+        let retryCounter = this.getCounter(retrykeyName);
+        handlerContext.retryCounter = retryCounter;
     }
 };
 
@@ -285,7 +304,16 @@ BulldozerC.prototype.getCounter = function (keyName) {
 };
 
 BulldozerC.prototype.formatMetricsKeyName = function (keyName) {
-    return keyName.key + '{type="' + keyName.type + '",}';
+    let _key = keyName.key;
+    delete keyName.key;
+    let result = '{';
+    for (let key in keyName) {
+        if (keyName.hasOwnProperty(key)) {
+            result += key + '="' + keyName[key] + '",';
+        }
+    }
+    result += '}';
+    return _key + result;
 };
 
 module.exports = BulldozerC;
