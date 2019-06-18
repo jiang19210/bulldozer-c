@@ -214,7 +214,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
         if (handlerContext.retry < 5) {
             console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
         } else {
-            console.warn('[%s] %s_request_fail_no_retry_%s, url = %s , postdata = %s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata));
+            console.error('[%s] %s_request_fail_no_retry_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
         }
         handlerContext.retryFailCounter.inc();
     } else {
