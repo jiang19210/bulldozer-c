@@ -180,7 +180,6 @@ BulldozerC.prototype._dataCheck = function (handlerContext) {
         if (statusCode === 404) {
             handlerContext.retry = 10;
         }
-        console.warn('[%s] %s_request_fail_retry_%s, url = %s , postdata = %s', handlerContext.uuid, statusCode, handlerContext.retry, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata));
         if (!statusCode) {
             statusCode = 152;
         }
@@ -213,7 +212,9 @@ BulldozerC.prototype.retry = function (handlerContext) {
     if (handlerContext.retry > 3) {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         if (handlerContext.retry < 5) {
-            console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
+            console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
+        } else {
+            console.warn('[%s] %s_request_fail_no_retry_%s, url = %s , postdata = %s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata));
         }
         handlerContext.retryFailCounter.inc();
     } else {
