@@ -101,7 +101,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                             self.metrics(handlerContext, httpcontext);
                             self.startRequest(handlerContext);
                         } catch (e) {
-                            console.info('定时器调用startRequest发生异常.%s', e);
+                            console.warn('[%s] 定时器调用startRequest发生异常.%s', handlerContext.uuid, e);
                         }
                     }
                 }, {'request': {'postdata': collection}});
@@ -184,7 +184,7 @@ BulldozerC.prototype._dataCheck = function (handlerContext) {
             statusCode = 152;
         }
         this.getCounter({
-            'key': 'bulldozer-c',
+            'key': 'bulldozer_c_http',
             'type': handlerContext.queueName + '_' + handlerContext.data.next,
             'statusCode': statusCode
         }).inc();
