@@ -148,6 +148,19 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
         }, handlerContext);
     });
 };
+//单个请求链路测试入口
+BulldozerC.prototype.testDelayStartRequest = function (handlerContext, queueName, delay, operation) {
+    handlerContext.uuid = uuid();
+    if (!operation) {
+        operation = 'rpop';
+    }
+    handlerContext.operation = operation;
+    let self = this;
+    this.metrics(handlerContext, {'request': {'postdata': {'name': queueName}}});
+    setTimeout(function () {
+        self.startRequest(handlerContext);
+    }, delay);
+};
 //任务开始对请求配置进行处理,默认忽略
 BulldozerC.prototype.taskPreProcess = function (handlerContext) {
 };
