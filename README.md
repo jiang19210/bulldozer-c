@@ -11,7 +11,8 @@
 *****
 *****
 *****
-#### 细节介绍  一下bc皆为 let bc = new BulldozerC, BulldozerC在同一进程中只最好只new一次，new的对象会赋值给全局变量 global.bulldozerc_new。
+#### 细节介绍  
+* 下面bc皆为 let bc = new BulldozerC, BulldozerC在同一进程中只最好只new一次，new的对象会赋值给全局变量 global.bulldozerc_new。
 * bulldozer-c中通用格式爬取请求模板
  ~~~~
   {
