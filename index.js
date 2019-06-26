@@ -51,6 +51,7 @@ global.TASK_SCHEDULE_STOP = true; //任务调度开关,停止不可恢复
 global.TASK_SCHEDULE_ENABLE_LOG = true;   //任务日志
 global.RUN_TASK_QUEUE_NAME = null;   //运行中的任务队列名称
 global.metrics_counter_keys = {};
+global.request_retry_count = 3;
 
 /////////////////////
 BulldozerC.prototype.rpop = 'rpop';
@@ -178,7 +179,7 @@ BulldozerC.prototype._dataCheck = function (handlerContext) {
     let statusCode = handlerContext.response.statusCode;
     if (!statusCode || !this.dataCheck(handlerContext) || handlerContext.response.statusCode !== 200) {
         if (statusCode === 404) {
-            handlerContext.retry = 10;
+            handlerContext.retry = 404;
         }
         if (!statusCode) {
             statusCode = 152;
@@ -207,9 +208,10 @@ BulldozerC.prototype.retry = function (handlerContext) {
     } else {
         ++handlerContext.retry;
     }
-    if (handlerContext.retry > 3) {
+    if (handlerContext.retry > global.request_retry_count) {
         var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
-        if (handlerContext.retry < 5) {
+        this.retryFail(handlerContext);
+        if (handlerContext.retry < 100) {
             console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
         } else {
             console.error('[%s] %s_request_fail_no_retry_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
@@ -227,7 +229,8 @@ BulldozerC.prototype.retry = function (handlerContext) {
         handlerContext.retryCounter.inc();
     }
 };
-
+BulldozerC.prototype.retryFail = function (handlerContext) {
+};
 //优雅的暂停
 BulldozerC.prototype.checkSuspend = function () {
     global.TASK_SCHEDULE_ENABLE = false;
