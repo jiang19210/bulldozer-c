@@ -153,7 +153,7 @@
      2.如果指标为对象，将以key键值为指标名称，如:let retryFailkeyName = {'key': 'bulldozer_c', 'type': queueName, 'next': 'downloadLogo', 'event': 'total'}; 指标为: bulldozer_c{type="queueName",next="downloadLogo",event="total",}                     
 ~~~~
 
-* 指标采集,采集脚本[pm2-agent](https://github.com/jiang19210/pm2-agent)
+* 指标采集,采集服务[pm2-agent](https://github.com/jiang19210/pm2-agent)
 ~~~~
     采集例子:
     # HELP bulldozer_c HELP.
