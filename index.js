@@ -363,19 +363,25 @@ BulldozerC.prototype.taskIsStop = function (stopSecond, taskName, keyName) {
     }
 };
 /**
- * intervalMin 分钟
+ * intervalMin 重复初始化时间间隔，分钟；为空，则不重复初始化
  * 间隔intervalMin分钟后重新初始化任务，初始化的时候首先会判定任务是否已经停止，如果没有停止，则不进行初始化
+ * firstInitMin 第一次初始化在firstInitMin分钟后;为空，则第一次不初始化
  * */
-BulldozerC.prototype.setTaskInitInterval = function (intervalMin, stopSecond, taskName, keyName) {
-    if (!intervalMin) {
-        intervalMin = 5;
-    }
+BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, stopSecond, taskName, keyName) {
     let seft = this;
-    setInterval(function () {
-        if (seft.taskIsStop(stopSecond, taskName, keyName)) {
-            seft.taskInit()
-        }
-    }, 1000 * 60 * intervalMin)
+    if (intervalMin) {
+        setInterval(function () {
+            if (seft.taskIsStop(stopSecond, taskName, keyName)) {
+                seft.taskInit();
+            }
+        }, 1000 * 60 * intervalMin);
+    }
+
+    if (firstInitMin) {
+        setTimeout(function () {
+            seft.taskInit();
+        }, 1000 * 60 * firstInitMin)
+    }
 };
 /***
  * 任务初始化接口
