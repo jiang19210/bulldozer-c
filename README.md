@@ -74,7 +74,7 @@
   }
   此模板可以通过 bc.httpUtils.buildHttpcontext方法获构建
   ~~~~
-* 和服务端bulldozer进行交互.
+* 和服务端bulldozer进行交互. mysql操作具体可以参考[jsontosql2](https://www.npmjs.com/package/jsontosql2)
 ~~~~
 和服务端进行交互的数据格式为: let collection = {'name':'queueName|tableName', 'data':[{对象内容}], 'duplicate':['mysql表字段1','mysql表字段2']};,其中 duplicate为支持 mysql duplicate update 用法。如果是redis或者mongodb则不需要duplicate
 1. 将请求模板存储在redis队列中
@@ -109,7 +109,7 @@
     let collection = {
            'name': 'tableName',          //表名称
            'data': {'a':1,'b':2,'c':3}, //更新的值
-           'query': {'UNIQUE_KEY': 1}   //更新条件
+           'where': {'UNIQUE_KEY': 1}   //更新条件
        };
     bc.mysql_update(collection);
 ~~~~

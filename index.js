@@ -6,7 +6,7 @@ const uuid = require('node-uuid');
 const debug = require('debug');
 const pmx = require('pmx');
 
-var probe = pmx.probe();
+const probe = pmx.probe();
 
 function BulldozerC() {
     global.bulldozerc_new = this;
@@ -61,7 +61,9 @@ BulldozerC.prototype.spopsadd = 'spopsadd';
 /////////////////////
 //operation = rpop | spop | rpoplpush | spopsadd
 BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, intervalTime, operation) {
-    var name = collection.name;
+    global[taskName + ':intervalTime'] = intervalTime;
+    global['defult:intervalTime'] = intervalTime;
+    let name = collection.name;
     if (!name) {
         name = collection.name0;
     }
@@ -95,6 +97,12 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         }
                     }
                     if (handlerContext != null) {
+                        self.getCounter({
+                            'key': 'bulldozer_c_queue_null_count',
+                            'type': httpcontext.request.postdata.name
+                        }).reset(0);
+                        self.getCounter('bulldozer_c_queue_null_count').reset(0);
+
                         handlerContext.mainProgram = mainProgram;
                         try {
                             handlerContext.uuid = uuid();
@@ -104,6 +112,12 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         } catch (e) {
                             console.warn('[%s] 定时器调用startRequest发生异常.%s', handlerContext.uuid, e);
                         }
+                    } else {
+                        self.getCounter({
+                            'key': 'bulldozer_c_queue_null_count',
+                            'type': httpcontext.request.postdata.name
+                        }).inc();
+                        self.getCounter('bulldozer_c_queue_null_count').inc();
                     }
                 }, {'request': {'postdata': collection}});
                 global.TASK_SCHEDULE_ENABLE_LOG = true;
@@ -222,7 +236,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
         ++handlerContext.retry;
     }
     if (handlerContext.retry > global.request_retry_count) {
-        var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
+        let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         this.retryFail(handlerContext);
         if (handlerContext.retry < 100) {
             console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
@@ -231,9 +245,9 @@ BulldozerC.prototype.retry = function (handlerContext) {
         }
         handlerContext.retryFailCounter.inc();
     } else {
-        var newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
+        let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         newHandlerContext.retry = handlerContext.retry;
-        var collection = {'name': handlerContext.queueName, 'data': [newHandlerContext]};
+        let collection = {'name': handlerContext.queueName, 'data': [newHandlerContext]};
         if (handlerContext.operation.indexOf('rpop') != -1) {
             dbClient.lpushs(collection);
         } else if (handlerContext.operation.indexOf('spop') != -1) {
@@ -253,7 +267,7 @@ BulldozerC.prototype.cryptoUtils = require('./lib/crypto_utils');
 BulldozerC.prototype.httpUtils = require('./lib/http_utils');
 
 setInterval(function () {
-    var queueName = global.RUN_TASK_QUEUE_NAME;
+    let queueName = global.RUN_TASK_QUEUE_NAME;
     console.log('检测任务状态 global.RUN_TASK_QUEUE_NAME = %s', queueName);
     if (!queueName) {
         return;
@@ -268,9 +282,9 @@ setInterval(function () {
 }, 1000 * 30);
 
 BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
-    var queueName = httpContext.request.postdata.name;
+    let queueName = httpContext.request.postdata.name;
     handlerContext.queueName = queueName;
-    var nextName = handlerContext.data.next;
+    let nextName = handlerContext.data.next;
     if (queueName && nextName) {
         let nextKeyName = {'key': 'bulldozer_c', 'type': queueName, 'next': nextName, 'event': 'total'};
         let nextCounter = this.getCounter(nextKeyName);
@@ -298,7 +312,7 @@ BulldozerC.prototype.getCounter = function (keyName) {
     if (typeof keyName === 'object') {
         keyName = this.formatMetricsKeyName(keyName);
     }
-    var counter = global.metrics_counter_keys[keyName];
+    let counter = global.metrics_counter_keys[keyName];
     if (!counter) {
         counter = probe.counter({'name': keyName});
         global.metrics_counter_keys[keyName] = counter;
@@ -317,6 +331,56 @@ BulldozerC.prototype.formatMetricsKeyName = function (keyName) {
     }
     result += '}';
     return _key + result;
+};
+
+BulldozerC.prototype.queueNullCount = function (keyName) {
+    if (!keyName) {
+        keyName = 'bulldozer_c_queue_null_count';
+    }
+    return this.getCounter(keyName).val();
+};
+/**
+ * stopSecond 任务停止秒  默认5分钟
+ * taskName 任务名称，对应runTask taskName
+ * keyName 对应 queueNullCount keyName
+ *
+ * 判断任务是否停止stopSecond秒
+ * */
+BulldozerC.prototype.taskIsStop = function (stopSecond, taskName, keyName) {
+    if (!taskName) {
+        taskName = 'defult';
+    }
+    if (!stopSecond) {
+        stopSecond = 300;
+    }
+
+    let intervalTime = global[taskName + ':intervalTime'];
+    let queueNullCount = this.queueNullCount(keyName);
+    if (queueNullCount * intervalTime >= stopSecond) {
+        return true;
+    } else {
+        return false;
+    }
+};
+/**
+ * intervalMin 分钟
+ * 间隔intervalMin分钟后重新初始化任务，初始化的时候首先会判定任务是否已经停止，如果没有停止，则不进行初始化
+ * */
+BulldozerC.prototype.setTaskInitInterval = function (intervalMin, stopSecond, taskName, keyName) {
+    if (!intervalMin) {
+        intervalMin = 5;
+    }
+    let seft = this;
+    setInterval(function () {
+        if (seft.taskIsStop(stopSecond, taskName, keyName)) {
+            seft.taskInit()
+        }
+    }, 1000 * 60 * intervalMin)
+};
+/***
+ * 任务初始化接口
+ * */
+BulldozerC.prototype.taskInit = function () {
 };
 
 module.exports = BulldozerC;
