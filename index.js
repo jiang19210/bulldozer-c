@@ -336,7 +336,7 @@ BulldozerC.prototype.taskIsStop = function (stopedMin, queueName) {
     let hrtime = global.loadHrTime[queueName];
     if (!hrtime) {
         hrtime = global.loadHrTime['default'];
-        console.error('queueName [%s] is wrong. use [default]', queueName);
+        console.warn('queueName [%s] is wrong. use [default]', queueName);
     }
     let intervalTime = process.hrtime(hrtime);
     if (intervalTime[0] >= stopedMin * 60) {
