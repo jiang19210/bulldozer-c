@@ -278,6 +278,18 @@ BulldozerC.prototype.dbClient = require('./lib/db_client');
 BulldozerC.prototype.cryptoUtils = require('./lib/crypto_utils');
 BulldozerC.prototype.httpUtils = require('./lib/http_utils');
 
+global.TASK_END_TIMEOUT = 5;
+global.TASK_STOP_TIMEOUT = 30;
+
+/***
+ * 设置任务超时时间
+ * endtime   当队列中长时间没有任务需要运行的时候（默认5min），将停止任务(不去队列拉取任务)
+ * stoptime  当任务停止超过 stoptime (默认30min)的时候，将去队列尝试拉取任务
+ * */
+BulldozerC.prototype.setTaskTimeOut = function (endtime, stoptime) {
+    global.TASK_END_TIMEOUT = endtime;
+    global.TASK_STOP_TIMEOUT = stoptime;
+};
 setInterval(function () {
     for (let i = 0; i < global.TASK_RUNING_QUEUE.length; i++) {
         let queueName = global.TASK_RUNING_QUEUE[i];
@@ -286,10 +298,10 @@ setInterval(function () {
             if (result.result === '0000') {
                 self.setTaskState(0);
                 console.info('===============================TaskStop===============================');
-            } else if (self.taskIsEnable() && self.taskIsEnd(5, 'default')) {
+            } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_END_TIMEOUT, 'default')) {
                 self.setTaskState(1);
                 console.info('===============================TaskEnd===============================');
-            } else if (!self.taskIsEnable() && self.taskIsStopMin(30)) {
+            } else if (!self.taskIsEnable() && self.taskIsStopMin(global.TASK_STOP_TIMEOUT)) {
                 self.setTaskState(2);
                 console.info('===============================TaskReStart===============================');
             }
