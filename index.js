@@ -16,13 +16,13 @@ function BulldozerC() {
 global.TASK_SCHEDULE_IDS = [];
 //运行任务
 BulldozerC.prototype.setTask = function (callback, taskName, time) {
-    console.log('[runTask] - 设置任务调度. 名称是[' + taskName + ']. 时间隔时间是[' + time / 1000 + 's].');
+    console.info('[runTask] - 设置任务调度. 名称是[' + taskName + ']. 时间隔时间是[' + time / 1000 + 's].');
     let id = setInterval(callback, time);
     global.TASK_SCHEDULE_IDS.push({'id': id, 'name': taskName});
 };
 //清空定时器 当任务处理完成 的时候
 BulldozerC.prototype.clearTask = function (taskName) {
-    console.log('[clearTask] - 关闭定时器');
+    console.info('[clearTask] - 关闭定时器');
     let taskSchedule = global.TASK_SCHEDULE_IDS;
     let length = taskSchedule.length;
 
@@ -31,13 +31,13 @@ BulldozerC.prototype.clearTask = function (taskName) {
             for (let i = 0; i < length; i++) {
                 if (taskName === taskSchedule[i].name) {
                     clearInterval(taskSchedule[i].id);
-                    console.log('[closeTaskScheduleCount] 关闭定时器的名称是[' + taskSchedule[i].name + ']. global.TASK_SCHEDULE_IDS = [' + global.TASK_SCHEDULE_IDS.length + ']');
+                    console.info('[closeTaskScheduleCount] 关闭定时器的名称是[' + taskSchedule[i].name + ']. global.TASK_SCHEDULE_IDS = [' + global.TASK_SCHEDULE_IDS.length + ']');
                 }
             }
         } else {
             for (let i = 0; i < length; i++) {
                 clearInterval(taskSchedule[i].id);
-                console.log('[clearTask] 关闭定时器的名称是[' + taskSchedule[i].name + ']');
+                console.info('[clearTask] 关闭定时器的名称是[' + taskSchedule[i].name + ']');
             }
             global.TASK_SCHEDULE_IDS = [];
         }
@@ -46,10 +46,8 @@ BulldozerC.prototype.clearTask = function (taskName) {
     }
 };
 //----通用方法
-global.TASK_SCHEDULE_ENABLE = true; //任务调度开关
-global.TASK_SCHEDULE_STOP = true; //任务调度开关,停止不可恢复
-global.TASK_SCHEDULE_ENABLE_LOG = true;   //任务日志
-global.RUN_TASK_QUEUE_NAME = [];   //运行中的任务队列名称
+global.TASK_SCHEDULE_ENABLE = true; //任务调度开关，当长时间没有任务需要运行的时候，将设置为false，默认5分钟
+global.TASK_RUNING_QUEUE = [];   //运行中的任务队列名称
 global.metrics_counter_keys = {};
 global.loadHrTime = {};
 global.request_retry_count = 3;
@@ -67,7 +65,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
         name = collection.name0;
     }
     if (name) {
-        global.RUN_TASK_QUEUE_NAME.push(name);
+        global.TASK_RUNING_QUEUE.push(name);
         global.loadHrTime[name] = process.hrtime();
         global.loadHrTime['default'] = global.loadHrTime[name];
     }
@@ -78,7 +76,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
         intervalTime = 1000;
     }
     self.setTask(function () {
-            if (global.TASK_SCHEDULE_ENABLE && global.TASK_SCHEDULE_STOP) {
+            if (global.TASK_SCHEDULE_ENABLE) {
                 let options = httpUtils.serverOptions('/worker/' + operation);
                 httpClientp.request(options, function (err, body, res, httpcontext) {
                     if (err) {
@@ -112,12 +110,6 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
                         }
                     }
                 }, {'request': {'postdata': collection}});
-                global.TASK_SCHEDULE_ENABLE_LOG = true;
-            } else {
-                if (global.TASK_SCHEDULE_ENABLE_LOG) {
-                    console.log('任务暂停中.');
-                    global.TASK_SCHEDULE_ENABLE_LOG = false;
-                }
             }
         }, taskName, intervalTime
     );
@@ -147,7 +139,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
         handlerContext.request.options.headers = global.HANDLER_CONTEXT_HEARDES;
     }
     this.taskPostProcess(handlerContext);
-    console.log('[%s] request url %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata), handlerContext.retry);
+    console.info('[%s] request url %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata), handlerContext.retry);
     httpClientp.request_select_proxy(handlerContext, function (callback) {
         self.withProxy(function (_handlerContext) {
             callback(_handlerContext);
@@ -175,7 +167,7 @@ BulldozerC.prototype.taskPostProcess = function (handlerContext) {
 BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskEnd = function (handlerContext) {
-    console.log('[%s] response code %s', handlerContext.uuid, handlerContext.response.statusCode);
+    console.info('[%s] response code %s', handlerContext.uuid, handlerContext.response.statusCode);
     if (global.bulldozerc_new._dataCheck(handlerContext)) {
         let mainProgram = handlerContext.mainProgram;
         delete handlerContext.request.options.headers;
@@ -250,23 +242,56 @@ BulldozerC.prototype.retry = function (handlerContext) {
 };
 BulldozerC.prototype.retryFail = function (handlerContext) {
 };
-//优雅的暂停
-BulldozerC.prototype.checkSuspend = function () {
-    global.TASK_SCHEDULE_ENABLE = false;
+BulldozerC.prototype.setTaskState = function (state) {
+    if (0 === state) {
+        global.TASK_SCHEDULE_ENABLE = false;
+        global.loadHrTime['state_hrtime'] = null;
+    } else if (1 === state) {
+        global.TASK_SCHEDULE_ENABLE = false;
+        global.loadHrTime['state_hrtime'] = process.hrtime();
+    } else if (2 === state) {
+        global.TASK_SCHEDULE_ENABLE = true;
+    }
+};
+
+BulldozerC.prototype.taskIsStopMin = function (stopedMin) {
+    if (!stopedMin) {
+        stopedMin = 10;
+    }
+    let hrtime = global.loadHrTime['state_hrtime'];
+    if (hrtime) {
+        let intervalTime = process.hrtime(hrtime);
+        if (intervalTime[0] >= stopedMin * 60) {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return true;
+    }
+};
+
+BulldozerC.prototype.taskIsEnable = function () {
+    return global.TASK_SCHEDULE_ENABLE;
 };
 BulldozerC.prototype.dbClient = require('./lib/db_client');
 BulldozerC.prototype.cryptoUtils = require('./lib/crypto_utils');
 BulldozerC.prototype.httpUtils = require('./lib/http_utils');
 
 setInterval(function () {
-    for (let i = 0; i < global.RUN_TASK_QUEUE_NAME.length; i++) {
-        let queueName = global.RUN_TASK_QUEUE_NAME[i];
+    for (let i = 0; i < global.TASK_RUNING_QUEUE.length; i++) {
+        let queueName = global.TASK_RUNING_QUEUE[i];
         dbClient.getTaskState(queueName, function (err, result, res, httpcontext) {
+            let self = global.bulldozerc_new;
             if (result.result === '0000') {
-                console.log('任务队列 [%s] 暂停', queueName);
-                global.TASK_SCHEDULE_STOP = false;
-            } else {
-                global.TASK_SCHEDULE_STOP = true;
+                self.setTaskState(0);
+                console.info('===============================TaskStop===============================');
+            } else if (self.taskIsEnable() && self.taskIsEnd(5, 'default')) {
+                self.setTaskState(1);
+                console.info('===============================TaskEnd===============================');
+            } else if (!self.taskIsEnable() && self.taskIsStopMin(30)) {
+                self.setTaskState(2);
+                console.info('===============================TaskReStart===============================');
             }
         });
     }
@@ -325,13 +350,13 @@ BulldozerC.prototype.formatMetricsKeyName = function (keyName) {
 };
 
 /**
- *   判断任务是否停止 stopedMin 分钟
- * stopedMin 任务已经停止时间  默认5分钟
+ *   判断任务是否停止 endMin 分钟
+ * endMin 任务已经停止时间  默认5分钟
  * keyName 对应 keyName
  * */
-BulldozerC.prototype.taskIsStop = function (stopedMin, queueName) {
-    if (!stopedMin) {
-        stopedMin = 5;
+BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
+    if (!endMin) {
+        endMin = 5;
     }
     let hrtime = global.loadHrTime[queueName];
     if (!hrtime) {
@@ -339,7 +364,7 @@ BulldozerC.prototype.taskIsStop = function (stopedMin, queueName) {
         console.warn('queueName [%s] is wrong. use [default]', queueName);
     }
     let intervalTime = process.hrtime(hrtime);
-    if (intervalTime[0] >= stopedMin * 60) {
+    if (intervalTime[0] >= endMin * 60) {
         return true;
     } else {
         return false;
@@ -350,7 +375,7 @@ BulldozerC.prototype.taskIsStop = function (stopedMin, queueName) {
  * 间隔intervalMin分钟后重新初始化任务，初始化的时候首先会判定任务是否已经停止，如果没有停止，则不进行初始化
  * firstInitMin 第一次初始化在firstInitMin分钟后;为空，则第一次不初始化
  * */
-BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, stopedMin, queueName) {
+BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, endMin, queueName) {
     if (!queueName) {
         queueName = 'default';
     }
@@ -358,19 +383,21 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
     if (firstInitMin) {
         setTimeout(function () {
             seft.taskInit();
+            console.info('===============================TaskInit===============================');
+            seft.setTaskState(2);
             seft.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'succ'}).inc();
         }, 1000 * 60 * firstInitMin)
     }
     if (intervalMin) {
         setInterval(function () {
-            if (seft.taskIsStop(stopedMin, queueName)) {
+            if (seft.taskIsEnd(endMin, queueName)) {
                 seft.taskInit();
+                console.info('===============================TaskInit===============================');
+                seft.setTaskState(2);
                 seft.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'succ'}).inc();
             }
         }, 1000 * 60 * intervalMin);
     }
-
-
 };
 /***
  * 任务初始化接口
