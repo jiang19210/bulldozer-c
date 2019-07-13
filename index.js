@@ -358,14 +358,14 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
     if (firstInitMin) {
         setTimeout(function () {
             seft.taskInit();
-            seft.getCounter({'key': 'bulldozer_c_init', 'type': queueName}).inc();
+            seft.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'succ'}).inc();
         }, 1000 * 60 * firstInitMin)
     }
     if (intervalMin) {
         setInterval(function () {
             if (seft.taskIsStop(stopedMin, queueName)) {
                 seft.taskInit();
-                seft.getCounter({'key': 'bulldozer_c_init', 'type': queueName}).inc();
+                seft.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'succ'}).inc();
             }
         }, 1000 * 60 * intervalMin);
     }
