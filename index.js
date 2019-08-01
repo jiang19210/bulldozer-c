@@ -297,6 +297,8 @@ setInterval(function () {
             let self = global.bulldozerc_new;
             if (result.result === '0000') {
                 self.setTaskState(0);
+                //global.loadHrTime[queueName] = process.hrtime();
+                //global.loadHrTime['default'] = global.loadHrTime[queueName];
                 console.info('===============================TaskStop===============================');
             } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_END_TIMEOUT, 'default')) {
                 self.setTaskState(1);
