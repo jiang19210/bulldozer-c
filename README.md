@@ -1,7 +1,14 @@
 # bulldozer-c
 
 #### 项目介绍
-超级简单的分布式爬虫系统。此项目为爬虫客户端，功能有：抓取、解析、存储、任务调度、任务监控等。抓取请求模板存储在redis中，利用redis的set和list集合作为存储爬取请求的队列；[点击跳转到服务端](https://github.com/jiang19210/bulldozer),此项目用到的[httpclientp](https://www.npmjs.com/package/http-clientp)
+1. 分布式爬虫系统，需要和[bulldozer(服务端)](https://github.com/jiang19210/bulldozer)组合使用
+2. 支持抓取、解析、存储、任务初始化、任务调度、任务监控告警等
+3. [bulldozer(服务端)](https://github.com/jiang19210/bulldozer)主要用到redis、mysql、mongodb，其中redis为必须;
+    1. redis存储request模板、主要包含:请求地址及参数、解析此request的方法函数事件、附带的数据信息等
+    2. mysql、mongodb主要存储解析后的数据，其中mysql通过将json对象转换成sql语句实现通用的insert、update、delete、select操作；
+4. 此系统涉及到的主要包或者服务: [bulldozer(服务端)](https://github.com/jiang19210/bulldozer)、[httpclientp](https://www.npmjs.com/package/http-clientp)、[jsontosql2](https://www.npmjs.com/package/jsontosql2)
+5. 此系统可以配合[pm2-agent](https://github.com/jiang19210/pm2-agent)进行指标的采集，实现监控告警
+6. 爬虫脚本可以通过 pm2 start crawl.js(脚本) --log-date-format='YYYY-MM-DD HH:mm:ss.SSS'(打印日志时间) -i 2(进程数) 执行,日志会存储在 .pm2/logs/ 下面
 ****
 #### 软件架构
 ![avatar](https://github.com/jiang19210/data/blob/master/bulldozer.png?raw=true)
@@ -120,7 +127,7 @@
    (1) collection : 队列名称 {'name':'queueName'} (operation=rpop|spop), {'name0':'queueName0', 'name1':'queueName1'} (operation=rpoplpush|spopsadd)
    (2) mainProgram : 爬虫具体脚本对象
    (3) taskName : 爬虫名称
-   (4) intervalTime : 定时从redis取爬取请求模板时间间隔
+   (4) intervalTime : 爬虫请求时间间隔,单位秒。如 1 表示每1s请求一次
    (5) operation : spop，spopsadd从set中取出爬取请求模板；rpop，rpoplpush从list中取出爬取请求模板
 2. bc.testDelayStartRequest(handlerContext, queueName, delay, operation); //单个请求测试入口   
 ~~~~
@@ -161,4 +168,9 @@
     bulldozer_c{type="queueName",next="downloadLogo",event="total",nodeName="download_logo",pid="1218094",} 7281
     bulldozer_c{type="queueName",next="downloadLogo",event="succ",nodeName="download_logo",pid="1218094",} 7200
     bulldozer_c{type="queueName",next="downloadLogo",event="fail",nodeName="download_logo",pid="1218094",} 81
+~~~~
+* 0.0.42
+~~~~
+ 1. 增加taskInit函数，用于任务初始化
+ 2. 增加setTaskInitInterval函数，用于设置任务初始化时间，及任务执行周期
 ~~~~

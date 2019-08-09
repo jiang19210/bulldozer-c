@@ -51,6 +51,7 @@ global.TASK_RUNING_QUEUE = [];   //运行中的任务队列名称
 global.metrics_counter_keys = {};
 global.loadHrTime = {};
 global.request_retry_count = 3;
+global.proxymodel = 'default';
 
 /////////////////////
 BulldozerC.prototype.rpop = 'rpop';
@@ -395,6 +396,7 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
     }
     let seft = this;
     if (firstInitMin) {
+        intervalMin = intervalMin + firstInitMin;
         setTimeout(function () {
             seft.taskInit();
             console.info('===============================TaskInit===============================');
