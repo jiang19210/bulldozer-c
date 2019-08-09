@@ -1,8 +1,8 @@
 {
   "name": "bulldozer-c",
-  "version": "0.0.42",
+  "version": "0.0.43",
   "scripts": {},
-  "description": "爬虫客户端",
+  "description": "分布式爬虫",
   "dependencies": {
     "config": "1.25.1",
     "debug": "3.1.0",
@@ -19,7 +19,11 @@
   "author": "jiang19210",
   "license": "MIT",
   "keywords": [
+    "爬虫",
+    "分布式爬虫",
+    "分布式",
     "spider",
-    "爬虫"
+    "Distributed",
+    "Distributed Spider"
   ]
 }
