@@ -116,6 +116,11 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
         }, taskName, intervalTime
     );
 };
+
+BulldozerC.prototype.runTaskQPS = function (collection, mainProgram, taskName, QPS, operation) {
+    let intervalTime = 1/QPS;
+    this.runTask(collection, mainProgram, taskName, intervalTime, operation);
+};
 //可以继承此方法给每个请求设置代理
 BulldozerC.prototype.withProxy = function (callback, handlerContext) {
     callback(handlerContext);
@@ -256,6 +261,28 @@ BulldozerC.prototype.setTaskState = function (state) {
     }
 };
 
+/**
+ *   判断任务是否停止 endMin 分钟
+ * endMin 任务已经停止时间  默认5分钟
+ * keyName 对应 keyName
+ * */
+BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
+    if (!endMin) {
+        endMin = 5;
+    }
+    let hrtime = global.loadHrTime[queueName];
+    if (!hrtime) {
+        hrtime = global.loadHrTime['default'];
+        console.warn('queueName [%s] is wrong. use [default]', queueName);
+    }
+    let intervalTime = process.hrtime(hrtime);
+    if (intervalTime[0] >= endMin * 60) {
+        return true;
+    } else {
+        return false;
+    }
+};
+
 BulldozerC.prototype.taskIsStopMin = function (stopedMin) {
     if (!stopedMin) {
         stopedMin = 10;
@@ -280,17 +307,17 @@ BulldozerC.prototype.dbClient = require('./lib/db_client');
 BulldozerC.prototype.cryptoUtils = require('./lib/crypto_utils');
 BulldozerC.prototype.httpUtils = require('./lib/http_utils');
 
-global.TASK_END_TIMEOUT = 5;
-global.TASK_STOP_TIMEOUT = 30;
+global.TASK_TIMEOUT = 5;
+global.TASK_RESTORE_TIME = 30;
 
 /***
  * 设置任务超时时间
  * endtime   当队列中长时间没有任务需要运行的时候（默认5min），将停止任务(不去队列拉取任务)
  * stoptime  当任务停止超过 stoptime (默认30min)的时候，将去队列尝试拉取任务
  * */
-BulldozerC.prototype.setTaskTimeOut = function (endtime, stoptime) {
-    global.TASK_END_TIMEOUT = endtime;
-    global.TASK_STOP_TIMEOUT = stoptime;
+BulldozerC.prototype.setTaskTimeOut = function (timeOut, restoreTime) {
+    global.TASK_TIMEOUT = timeOut;
+    global.TASK_RESTORE_TIME = restoreTime;
 };
 setInterval(function () {
     for (let i = 0; i < global.TASK_RUNING_QUEUE.length; i++) {
@@ -302,10 +329,10 @@ setInterval(function () {
                 //global.loadHrTime[queueName] = process.hrtime();
                 //global.loadHrTime['default'] = global.loadHrTime[queueName];
                 console.info('===============================TaskStop===============================');
-            } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_END_TIMEOUT, 'default')) {
+            } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_TIMEOUT, 'default')) {
                 self.setTaskState(1);
                 console.info('===============================TaskEnd===============================');
-            } else if (!self.taskIsEnable() && self.taskIsStopMin(global.TASK_STOP_TIMEOUT)) {
+            } else if (!self.taskIsEnable() && self.taskIsStopMin(global.TASK_RESTORE_TIME)) {
                 self.setTaskState(2);
                 console.info('===============================TaskReStart===============================');
             }
@@ -363,28 +390,6 @@ BulldozerC.prototype.formatMetricsKeyName = function (keyName) {
     }
     result += '}';
     return _key + result;
-};
-
-/**
- *   判断任务是否停止 endMin 分钟
- * endMin 任务已经停止时间  默认5分钟
- * keyName 对应 keyName
- * */
-BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
-    if (!endMin) {
-        endMin = 5;
-    }
-    let hrtime = global.loadHrTime[queueName];
-    if (!hrtime) {
-        hrtime = global.loadHrTime['default'];
-        console.warn('queueName [%s] is wrong. use [default]', queueName);
-    }
-    let intervalTime = process.hrtime(hrtime);
-    if (intervalTime[0] >= endMin * 60) {
-        return true;
-    } else {
-        return false;
-    }
 };
 /**
  * intervalMin 重复初始化时间间隔，分钟；为空，则不重复初始化

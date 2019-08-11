@@ -169,8 +169,18 @@
     bulldozer_c{type="queueName",next="downloadLogo",event="succ",nodeName="download_logo",pid="1218094",} 7200
     bulldozer_c{type="queueName",next="downloadLogo",event="fail",nodeName="download_logo",pid="1218094",} 81
 ~~~~
-* 0.0.42
+* 0.0.43
 ~~~~
  1. 增加taskInit函数，用于任务初始化
  2. 增加setTaskInitInterval函数，用于设置任务初始化时间，及任务执行周期
+ 3. 增加判断是否暂停爬虫任务: 
+                        (1)如果连续5min没有爬虫请求(既redis队列为空)，将暂停爬虫任务；
+                        (2)如果爬虫任务处于暂停中，每30min后会尝试恢复爬虫任务；如果恢复后，最大30s内还没有任务将继续暂停；这是一个循环判断过程；
+                        (3)可以通过 bc.setTaskTimeOut(timeOut, restoreTime);设置暂停爬虫时间和恢复爬虫时间
+~~~~
+* 0.0.44
+~~~~
+ 1. 增加 $ 函数，用于获取html选择器:let $ = bc.$(html);
+ 2. 增加 parseJson 函数，用于格式化json字符串:let jsonObj = bc.parseJson(jsonstr);
+ 3. 增加 runTaskQPS 函数，用于根据qps进行设置爬虫速度: bc.runTaskQPS(collection, mainProgram, taskName, QPS, operation)
 ~~~~
