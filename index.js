@@ -5,6 +5,7 @@ const dbClient = require('./lib/db_client');
 const uuid = require('node-uuid');
 const debug = require('debug');
 const pmx = require('pmx');
+const cheerio = require("cheerio");
 
 const probe = pmx.probe();
 
@@ -419,6 +420,22 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
  * 任务初始化接口
  * */
 BulldozerC.prototype.taskInit = function () {
+};
+
+BulldozerC.prototype.$ = function (html) {
+    if (html) {
+        return cheerio.load(html);
+    } else {
+        return null;
+    }
+};
+
+BulldozerC.prototype.parseJson = function (jsonstr) {
+    if (jsonstr) {
+        return JSON.parse(jsonstr);
+    } else {
+        return null;
+    }
 };
 
 module.exports = BulldozerC;

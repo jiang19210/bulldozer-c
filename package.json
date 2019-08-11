@@ -10,7 +10,8 @@
     "iconv-lite": "0.4.13",
     "moment": "2.16.0",
     "node-uuid": "1.4.8",
-    "pmx": "1.6.7"
+    "pmx": "1.6.7",
+    "cheerio": "1.0.0-rc.2"
   },
   "repository": {
     "type": "git",
