@@ -184,3 +184,7 @@
  2. 增加 parseJson 函数，用于格式化json字符串:let jsonObj = bc.parseJson(jsonstr);
  3. 增加 runTaskQPS 函数，用于根据qps进行设置爬虫速度: bc.runTaskQPS(collection, mainProgram, taskName, QPS, operation)
 ~~~~
+* 0.0.45
+~~~~
+ 1. 启动任务增加打印qps
+~~~~

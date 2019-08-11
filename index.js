@@ -17,7 +17,7 @@ function BulldozerC() {
 global.TASK_SCHEDULE_IDS = [];
 //运行任务
 BulldozerC.prototype.setTask = function (callback, taskName, time) {
-    console.info('[runTask] - 设置任务调度. 名称是[' + taskName + ']. 时间隔时间是[' + time / 1000 + 's].');
+    console.info('[runTask] - 设置任务调度. taskName是[%s]. 时间隔时间是[%s s]. QPS[%s /s]', taskName, time / 1000, 1000 / time);
     let id = setInterval(callback, time);
     global.TASK_SCHEDULE_IDS.push({'id': id, 'name': taskName});
 };
@@ -118,7 +118,7 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
 };
 
 BulldozerC.prototype.runTaskQPS = function (collection, mainProgram, taskName, QPS, operation) {
-    let intervalTime = 1/QPS;
+    let intervalTime = 1 / QPS;
     this.runTask(collection, mainProgram, taskName, intervalTime, operation);
 };
 //可以继承此方法给每个请求设置代理
