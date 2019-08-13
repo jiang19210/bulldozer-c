@@ -6,18 +6,24 @@ const uuid = require('node-uuid');
 const debug = require('debug');
 const pmx = require('pmx');
 const cheerio = require("cheerio");
+const util = require("util");
+const events = require("events");
 
 const probe = pmx.probe();
 
+let selfc = null;
+
 function BulldozerC() {
-    global.bulldozerc_new = this;
+    global.bulldozerc_new = selfc = this;
 }
+
+util.inherits(BulldozerC, events.EventEmitter);
 
 //定时器id
 global.TASK_SCHEDULE_IDS = [];
 //运行任务
 BulldozerC.prototype.setTask = function (callback, taskName, time) {
-    console.info('[runTask] - 设置任务调度. taskName是[%s]. 时间隔时间是[%s s]. QPS[%s /s]', taskName, time / 1000, 1000 / time);
+    console.info('[runTask] - 设置任务调度. taskName是[%s]. 时间隔时间是[%s s]. QPS[%s /min]', taskName, time / 1000, 60000 / time);
     let id = setInterval(callback, time);
     global.TASK_SCHEDULE_IDS.push({'id': id, 'name': taskName});
 };
@@ -61,7 +67,7 @@ BulldozerC.prototype.rpoplpush = 'rpoplpush';
 BulldozerC.prototype.spopsadd = 'spopsadd';
 /////////////////////
 //operation = rpop | spop | rpoplpush | spopsadd
-BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, intervalTime, operation) {
+BulldozerC.prototype._runTask = function (collection, mainProgram, taskName, intervalTime, operation) {
     let name = collection.name;
     if (!name) {
         name = collection.name0;
@@ -116,10 +122,17 @@ BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, inte
         }, taskName, intervalTime
     );
 };
-
-BulldozerC.prototype.runTaskQPS = function (collection, mainProgram, taskName, QPS, operation) {
+BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, intervalTime, operation, delayTime) {
+    if (!delayTime) {
+        delayTime = 1;
+    }
+    setTimeout(function () {
+        selfc._runTask(collection, mainProgram, taskName, intervalTime, operation);
+    }, delayTime);
+};
+BulldozerC.prototype.runTaskQPS = function (collection, mainProgram, taskName, QPS, operation, delayTime) {
     let intervalTime = 1 / QPS;
-    this.runTask(collection, mainProgram, taskName, intervalTime, operation);
+    this.runTask(collection, mainProgram, taskName, intervalTime, operation, delayTime);
 };
 //可以继承此方法给每个请求设置代理
 BulldozerC.prototype.withProxy = function (callback, handlerContext) {
@@ -175,7 +188,7 @@ BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskEnd = function (handlerContext) {
     console.info('[%s] response code %s', handlerContext.uuid, handlerContext.response.statusCode);
-    if (global.bulldozerc_new._dataCheck(handlerContext)) {
+    if (selfc._dataCheck(handlerContext)) {
         let mainProgram = handlerContext.mainProgram;
         delete handlerContext.request.options.headers;
         delete handlerContext.request.options.agent;
@@ -323,7 +336,7 @@ setInterval(function () {
     for (let i = 0; i < global.TASK_RUNING_QUEUE.length; i++) {
         let queueName = global.TASK_RUNING_QUEUE[i];
         dbClient.getTaskState(queueName, function (err, result, res, httpcontext) {
-            let self = global.bulldozerc_new;
+            let self = selfc;
             if (result.result === '0000') {
                 self.setTaskState(0);
                 //global.loadHrTime[queueName] = process.hrtime();
@@ -425,6 +438,7 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
  * 任务初始化接口
  * */
 BulldozerC.prototype.taskInit = function () {
+    this.emit('taskInit');
 };
 
 BulldozerC.prototype.$ = function (html) {
@@ -442,5 +456,15 @@ BulldozerC.prototype.parseJson = function (jsonstr) {
         return null;
     }
 };
+BulldozerC.prototype.setProxy = function (host, port) {
+    global.http_proxy = {'host': host, 'port': port};
+};
+
+function Crawl() {
+}
+
+util.inherits(Crawl, events.EventEmitter);
+
+BulldozerC.prototype.newCrawl = new Crawl();
 
 module.exports = BulldozerC;
