@@ -188,3 +188,8 @@
 ~~~~
  1. 启动任务增加打印qps
 ~~~~
+* 0.0.46
+~~~~
+ 1. 增加setProxy设置代理函数
+ 2. 增加默认crawl函数，可以直接通过bc.newCrawl得到默认爬虫函数。新写法例子: https://github.com/jiang19210/bulldozer-c-example/blob/master/dianping_task_on.js
+~~~~
