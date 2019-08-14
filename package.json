@@ -1,6 +1,6 @@
 {
   "name": "bulldozer-c",
-  "version": "0.0.46",
+  "version": "0.0.47",
   "scripts": {},
   "description": "分布式爬虫",
   "dependencies": {
@@ -25,6 +25,7 @@
     "分布式",
     "spider",
     "Distributed",
-    "Distributed Spider"
+    "Distributed Spider",
+    "scrapy"
   ]
 }

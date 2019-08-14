@@ -462,9 +462,13 @@ BulldozerC.prototype.setProxy = function (host, port) {
 
 function Crawl() {
 }
-
 util.inherits(Crawl, events.EventEmitter);
-
-BulldozerC.prototype.newCrawl = new Crawl();
+BulldozerC.prototype.newCrawl = function () {
+    return new Crawl();
+};
+let singleton = new Crawl();
+BulldozerC.prototype.newSingletonCrawl = function () {
+    return singleton;
+};
 
 module.exports = BulldozerC;
