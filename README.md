@@ -13,8 +13,7 @@
 #### 软件架构
 ![avatar](https://github.com/jiang19210/data/blob/master/bulldozer.png?raw=true)
 ****
-#### 参考例子
-* [https://github.com/jiang19210/bulldozer-c-example](https://github.com/jiang19210/bulldozer-c-example)
+* [Examples](https://github.com/jiang19210/bulldozer-c-example)
 *****
 *****
 *****
