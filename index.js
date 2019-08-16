@@ -415,7 +415,6 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
     }
     let seft = this;
     if (firstInitMin) {
-        intervalMin = intervalMin + firstInitMin;
         setTimeout(function () {
             seft.taskInit();
             console.info('===============================TaskInit===============================');
