@@ -279,7 +279,7 @@ BulldozerC.prototype.setTaskState = function (state) {
  * keyName 对应 keyName
  * */
 BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
-    if(objUtils.isEmptyObject(global.loadHrTime)){
+    if (objUtils.isEmptyObject(global.loadHrTime)) {
         return true;
     }
     if (!endMin) {
@@ -417,9 +417,6 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
     }
     let self = this;
     if (firstInitMin) {
-        if (firstInitMin < 2) {
-            firstInitMin = 3;
-        }
         console.log('task firstInitMin = %s', firstInitMin);
         setTimeout(function () {
             self._taskInit(endMin, queueName);
@@ -470,6 +467,7 @@ BulldozerC.prototype.setProxy = function (host, port) {
 
 function Crawl() {
 }
+
 util.inherits(Crawl, events.EventEmitter);
 BulldozerC.prototype.newCrawl = function () {
     return new Crawl();
