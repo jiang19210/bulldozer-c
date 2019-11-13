@@ -288,7 +288,7 @@ BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
     let hrtime = global.loadHrTime[queueName];
     if (!hrtime) {
         hrtime = global.loadHrTime['default'];
-        console.warn('queueName [%s] is wrong. use [default]', queueName);
+        console.warn('queueName [%s] is wrong. use [default] %s', queueName, hrtime);
     }
     let intervalTime = process.hrtime(hrtime);
     if (intervalTime[0] >= endMin * 60) {
