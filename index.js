@@ -279,7 +279,7 @@ BulldozerC.prototype.setTaskState = function (state) {
  * keyName 对应 keyName
  * */
 BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
-    if (objUtils.isEmptyObject(global.loadHrTime)) {
+    if (!global.loadHrTime['default']) {
         return true;
     }
     if (!endMin) {
