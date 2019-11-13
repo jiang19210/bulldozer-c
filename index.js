@@ -276,12 +276,12 @@ BulldozerC.prototype.setTaskState = function (state) {
 
 /**
  *   判断任务是否停止 endMin 分钟
- * endMin 任务已经停止时间  默认5分钟
+ * endMin 任务已经停止时间  默认2分钟
  * keyName 对应 keyName
  * */
 BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
     if (!endMin) {
-        endMin = 5;
+        endMin = 2;
     }
     let hrtime = global.loadHrTime[queueName];
     if (!hrtime) {
@@ -342,7 +342,7 @@ setInterval(function () {
                 //global.loadHrTime[queueName] = process.hrtime();
                 //global.loadHrTime['default'] = global.loadHrTime[queueName];
                 console.info('===============================TaskStop===============================');
-            } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_TIMEOUT, 'default')) {
+            } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_TIMEOUT, queueName)) {
                 self.setTaskState(1);
                 console.info('===============================TaskEnd===============================');
             } else if (!self.taskIsEnable() && self.taskIsStopMin(global.TASK_RESTORE_TIME)) {
@@ -415,6 +415,10 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
     }
     let self = this;
     if (firstInitMin) {
+        if (firstInitMin < 2) {
+            firstInitMin = 3;
+        }
+        console.log('task firstInitMin = %s', firstInitMin);
         setTimeout(function () {
             self._taskInit(endMin, queueName);
         }, 1000 * 60 * firstInitMin)
