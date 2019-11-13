@@ -8,6 +8,7 @@ const pmx = require('pmx');
 const cheerio = require("cheerio");
 const util = require("util");
 const events = require("events");
+const objUtils = require('./lib/obj_utils');
 
 const probe = pmx.probe();
 
@@ -74,8 +75,6 @@ BulldozerC.prototype._runTask = function (collection, mainProgram, taskName, int
     }
     if (name) {
         global.TASK_RUNING_QUEUE.push(name);
-        global.loadHrTime[name] = process.hrtime();
-        global.loadHrTime['default'] = global.loadHrTime[name];
     }
     let self = this;
     if (intervalTime) {
@@ -280,6 +279,9 @@ BulldozerC.prototype.setTaskState = function (state) {
  * keyName 对应 keyName
  * */
 BulldozerC.prototype.taskIsEnd = function (endMin, queueName) {
+    if(objUtils.isEmptyObject(global.loadHrTime)){
+        return true;
+    }
     if (!endMin) {
         endMin = 2;
     }
