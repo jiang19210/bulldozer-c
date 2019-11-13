@@ -413,24 +413,27 @@ BulldozerC.prototype.setTaskInitInterval = function (intervalMin, firstInitMin, 
     if (!queueName) {
         queueName = 'default';
     }
-    let seft = this;
+    let self = this;
     if (firstInitMin) {
         setTimeout(function () {
-            seft.taskInit();
-            console.info('===============================TaskInit===============================');
-            seft.setTaskState(2);
-            seft.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'succ'}).inc();
+            self._taskInit(endMin, queueName);
         }, 1000 * 60 * firstInitMin)
     }
     if (intervalMin) {
         setInterval(function () {
-            if (seft.taskIsEnd(endMin, queueName)) {
-                seft.taskInit();
-                console.info('===============================TaskInit===============================');
-                seft.setTaskState(2);
-                seft.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'succ'}).inc();
-            }
+            self._taskInit(endMin, queueName);
         }, 1000 * 60 * intervalMin);
+    }
+};
+BulldozerC.prototype._taskInit = function (endMin, queueName) {
+    if (this.taskIsEnd(endMin, queueName)) {
+        this.taskInit();
+        console.info('===============================TaskInit===============================');
+        this.setTaskState(2);
+        this.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'succ'}).inc();
+    } else {
+        this.getCounter({'key': 'bulldozer_c', 'type': queueName, 'next': 'init', 'event': 'fail'}).inc();
+        console.warn('task is running, taskInit will not be executed.')
     }
 };
 /***
