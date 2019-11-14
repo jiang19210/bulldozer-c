@@ -76,6 +76,7 @@ BulldozerC.prototype._runTask = function (collection, mainProgram, taskName, int
     if (name) {
         global.TASK_RUNING_QUEUE.push(name);
     }
+    this.getCounter({'key': 'bulldozer_c', 'type': name, 'next': 'runtask', 'event': 'succ'}).inc();
     let self = this;
     if (intervalTime) {
         intervalTime = intervalTime * 1000;
