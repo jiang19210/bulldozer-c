@@ -1,5 +1,71 @@
 # bulldozer-c
+* example: [https://github.com/jiang19210/bulldozer-c-example](https://github.com/jiang19210/bulldozer-c-example)
+*****
+~~~
+let BulldozerC = require('bulldozer-c');
+let httpclient = require('http-clientp');
+let bc = new BulldozerC();
+//global.http_proxy = {'host': '127.0.0.1', 'port': 8888}; //local proxy set
+let crawl = bc.newSingletonCrawl();
 
+let handlerContext = bc.httpUtils.buildHttpcontext('GET', {
+    'next': '1718',
+    'url': 'http://www.forbeschina.com/lists/1718'
+});
+handlerContext.mainProgram = crawl;
+bc.testDelayStartRequest(handlerContext);
+
+crawl.on('1718', function (prehandlerContext) {
+    let body = prehandlerContext.response.body;
+    let $ = bc.$(body);
+    let trs = $('#data-view > tbody > tr');
+    let postdata = [];
+    for (let i = 0; i < trs.length; i++) {
+        let tr = $(trs[i]);
+        let tds = tr.find('td');
+        let Ranking = $(tds[0]).text();
+        let PName = $(tds[1]).text();
+        let CName = $(tds[2]).text();
+        let HeadPro = $(tds[3]).text();
+        let HeadCity = $(tds[4]).text();
+        let Total = $(tds[5]).text();
+        let result = {
+            'Ranking': Ranking,
+            'PName': PName,
+            'CName': CName,
+            'HeadPro': HeadPro,
+            'HeadCity': HeadCity,
+            'Total': Total,
+        };
+        postdata.push(result);
+    }
+    let collection = {
+        'name': 'table_name',
+        'data': postdata
+    };
+    console.log(collection)
+    //bc.dbClient.save(collection);//save to mongodb
+    //bc.dbClient.mysql_save(collection);//save to mysql
+    /*
+        httpclient.post('http://services/save', function (err, body, res, httpcontext) {
+            if (err) {
+                 console.error('save fail');
+             } else {
+                 console.error('save succ');
+             }
+         }, {
+             'request': {
+                 'postdata': collection,
+                 'headers': {
+                     'content-type': 'application/json'
+                 }
+             }
+         })
+    */
+});
+
+~~~
+****
 #### 项目介绍
 1. 分布式爬虫系统，需要和[bulldozer(服务端)](https://github.com/jiang19210/bulldozer)组合使用
 2. 支持抓取、解析、存储、任务初始化、任务调度、任务监控告警等
@@ -12,10 +78,7 @@
 ****
 #### 软件架构
 ![avatar](https://github.com/jiang19210/data/blob/master/bulldozer.png?raw=true)
-****
-* [Examples](https://github.com/jiang19210/bulldozer-c-example)
-*****
-*****
+
 *****
 #### 细节介绍  
 * 下面bc皆为 let bc = new BulldozerC, BulldozerC在同一进程中最好只new一次，new的对象会赋值给全局变量 global.bulldozerc_new。

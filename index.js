@@ -166,17 +166,14 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
     });
 };
 //单个请求链路测试入口
-BulldozerC.prototype.testDelayStartRequest = function (handlerContext, queueName, delay, operation) {
+BulldozerC.prototype.testDelayStartRequest = function (handlerContext) {
     handlerContext.uuid = uuid();
-    if (!operation) {
-        operation = 'rpop';
-    }
-    handlerContext.operation = operation;
+    handlerContext.operation = 'test-operation';
     let self = this;
-    this.metrics(handlerContext, {'request': {'postdata': {'name': queueName}}});
+    this.metrics(handlerContext, {'request': {'postdata': {'name': 'test-queueName'}}});
     setTimeout(function () {
         self.startRequest(handlerContext);
-    }, delay);
+    }, 1000);
 };
 //任务开始对请求配置进行处理,默认忽略
 BulldozerC.prototype.taskPreProcess = function (handlerContext) {
@@ -186,7 +183,7 @@ BulldozerC.prototype.taskPostProcess = function (handlerContext) {
 BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskEnd = function (handlerContext) {
-    console.info('[%s] response code %s', handlerContext.uuid, handlerContext.response.statusCode);
+    console.info('[%s] %s response code %s', handlerContext.uuid, handlerContext.request.options.path, handlerContext.response.statusCode);
     if (selfc._dataCheck(handlerContext)) {
         let mainProgram = handlerContext.mainProgram;
         delete handlerContext.request.options.headers;
