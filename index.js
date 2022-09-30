@@ -149,10 +149,10 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
     }
     if (handlerContext.request.options == null || handlerContext.request.options.path == null) {
         handlerContext.weight = 1024;
-        self.taskEnd(handlerContext);
+        self.taskHandler(handlerContext);
         return;
     }
-    handlerContext.callback = self.taskEnd;
+    handlerContext.callback = self.taskHandler;
     //handlerContext.self = self;
     if (global.HANDLER_CONTEXT_HEARDES) {
         handlerContext.request.options.headers = global.HANDLER_CONTEXT_HEARDES;
@@ -182,7 +182,7 @@ BulldozerC.prototype.taskPostProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
-BulldozerC.prototype.taskEnd = function (handlerContext) {
+BulldozerC.prototype.taskHandler = function (handlerContext) {
     console.info('[%s] %s response code %s', handlerContext.uuid, handlerContext.request.options.path, handlerContext.response.statusCode);
     if (selfc._dataCheck(handlerContext)) {
         let mainProgram = handlerContext.mainProgram;
@@ -196,7 +196,12 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
             handlerContext.request.options.port = null;
         }
         let data = handlerContext.data;
-        mainProgram.emit(data.next, handlerContext);
+        try {
+            mainProgram.emit(data.next, handlerContext);
+        } catch (e) {
+            console.error('[%s] 解析异常 %s', handlerContext.uuid, e);
+            selfc.retry(handlerContext);
+        }
     } else {
         console.info('[%s] task is fail', handlerContext.uuid);
     }
@@ -204,7 +209,7 @@ BulldozerC.prototype.taskEnd = function (handlerContext) {
 
 BulldozerC.prototype._dataCheck = function (handlerContext) {
     let statusCode = handlerContext.response.statusCode;
-    if (!statusCode || !this.dataCheck(handlerContext) || handlerContext.response.statusCode !== 200) {
+    if (!statusCode || !this.dataCheck(handlerContext) || handlerContext.response.statusCode > 399) {
         if (statusCode === 404) {
             handlerContext.retry = 404;
         }
@@ -217,7 +222,7 @@ BulldozerC.prototype._dataCheck = function (handlerContext) {
             'statusCode': statusCode
         }).inc();
         handlerContext.nextFailCounter.inc();
-        this.retry(handlerContext);
+        selfc.retry(handlerContext);
         return false;
     } else {
         handlerContext.nextSuccCounter.inc();
@@ -237,7 +242,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
     }
     if (handlerContext.retry > global.request_retry_count) {
         let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
-        this.retryFail(handlerContext);
+        selfc.retryFail(handlerContext);
         if (handlerContext.retry < 100) {
             console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
         } else {
@@ -248,9 +253,9 @@ BulldozerC.prototype.retry = function (handlerContext) {
         let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         newHandlerContext.retry = handlerContext.retry;
         let collection = {'name': handlerContext.queueName, 'data': [newHandlerContext]};
-        if (handlerContext.operation.indexOf('rpop') != -1) {
+        if (handlerContext.operation.indexOf('rpop') !== -1) {
             dbClient.lpushs(collection);
-        } else if (handlerContext.operation.indexOf('spop') != -1) {
+        } else if (handlerContext.operation.indexOf('spop') !== -1) {
             dbClient.sadds(collection);
         }
         handlerContext.retryCounter.inc();
@@ -343,7 +348,7 @@ setInterval(function () {
                 console.info('===============================TaskStop===============================');
             } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_TIMEOUT, queueName)) {
                 self.setTaskState(1);
-                console.info('===============================TaskEnd===============================');
+                console.info('===============================taskHandler===============================');
             } else if (!self.taskIsEnable() && self.taskIsStopMin(global.TASK_RESTORE_TIME)) {
                 self.setTaskState(2);
                 console.info('===============================TaskReStart===============================');
