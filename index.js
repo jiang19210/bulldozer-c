@@ -140,6 +140,9 @@ BulldozerC.prototype.withProxy = function (callback, handlerContext) {
 global.HANDLER_CONTEXT_HEARDES = null;
 //任务开始
 BulldozerC.prototype.startRequest = function (handlerContext) {
+    if (!handlerContext.request.options.headers) {
+        handlerContext.request.options.headers = {};
+    }
     let self = this;
     this.taskPreProcess(handlerContext);
     let mainProgram = handlerContext.mainProgram;
@@ -240,6 +243,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
     } else {
         ++handlerContext.retry;
     }
+    console.log('[%s] retry: %s, url: ',handlerContext.uuid,  handlerContext.retry, handlerContext.request.options.path)
     if (handlerContext.retry > global.request_retry_count) {
         let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         selfc.retryFail(handlerContext);
@@ -355,7 +359,7 @@ setInterval(function () {
             }
         });
     }
-}, 1000 * 30);
+}, 1000 * 60 * 2);
 
 BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
     let queueName = httpContext.request.postdata.name;
