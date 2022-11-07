@@ -1,12 +1,12 @@
 {
   "name": "bulldozer-c",
-  "version": "0.0.65",
+  "version": "0.0.66",
   "scripts": {},
   "description": "分布式爬虫",
   "dependencies": {
     "config": "1.25.1",
     "debug": "3.1.0",
-    "http-clientp": "1.0.34",
+    "http-clientp": "1.0.35",
     "iconv-lite": "0.4.13",
     "node-uuid": "1.4.8",
     "pmx": "1.6.7",

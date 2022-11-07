@@ -252,10 +252,14 @@ crawl.on('1718', function (prehandlerContext) {
 ~~~~
 * 0.0.46
 ~~~~
- 1. 增加setProxy设置代理函数
+ 1. 增加setProxy(host, port)设置代理函数
  2. 增加默认 newCrawl() 函数，可以直接通过bc.newCrawl()得到默认爬虫函数。新写法例子: https://github.com/jiang19210/bulldozer-c-example/blob/master/dianping_task_on.js
 ~~~~
 * 0.0.47
 ~~~~
  1. 增加newSingletonCrawl()
+~~~~
+* 0.0.66
+~~~~
+ 1. 增加setProxy(host, port, username, password), 支持设置代理用户名及密码
 ~~~~

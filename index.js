@@ -359,7 +359,7 @@ setInterval(function () {
             }
         });
     }
-}, 1000 * 60 * 2);
+}, 1000 * 10);
 
 BulldozerC.prototype.metrics = function (handlerContext, httpContext) {
     let queueName = httpContext.request.postdata.name;
@@ -470,7 +470,13 @@ BulldozerC.prototype.parseJson = function (jsonstr) {
 BulldozerC.prototype.setProxy = function (host, port) {
     global.http_proxy = {'host': host, 'port': port};
 };
-
+BulldozerC.prototype.setProxy = function (host, port, username, password) {
+    let auth = null;
+    if (username && password) {
+        auth = username + ':' + password;
+    }
+    global.http_proxy = {'host': host, 'port': port, 'auth': auth};
+};
 function Crawl() {
 }
 
