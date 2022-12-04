@@ -161,7 +161,15 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
         handlerContext.request.options.headers = global.HANDLER_CONTEXT_HEARDES;
     }
     this.taskPostProcess(handlerContext);
-    console.info('[%s] request url %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, JSON.stringify(handlerContext.request.postdata), handlerContext.retry);
+    let xretry = 0;
+    let xpostdata = '';
+    if (handlerContext.retry) {
+        xretry = handlerContext.retry;
+    }
+    if (handlerContext.request.postdata) {
+        xpostdata = JSON.stringify(handlerContext.request.postdata);
+    }
+    console.info('[%s] request url %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, xpostdata, xretry);
     httpClientp.request_select_proxy(handlerContext, function (callback) {
         self.withProxy(function (_handlerContext) {
             callback(_handlerContext);
@@ -186,7 +194,15 @@ BulldozerC.prototype.taskPostProcess = function (handlerContext) {
 BulldozerC.prototype.taskProProcess = function (handlerContext) {
 };
 BulldozerC.prototype.taskHandler = function (handlerContext) {
-    console.info('[%s] %s response code %s', handlerContext.uuid, handlerContext.request.options.path, handlerContext.response.statusCode);
+    let xretry = 0;
+    let xpostdata = '';
+    if (handlerContext.retry) {
+        xretry = handlerContext.retry;
+    }
+    if (handlerContext.request.postdata) {
+        xpostdata = JSON.stringify(handlerContext.request.postdata);
+    }
+    console.info('[%s] response url %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, xpostdata, xretry);
     if (selfc._dataCheck(handlerContext)) {
         let mainProgram = handlerContext.mainProgram;
         delete handlerContext.request.options.headers;
@@ -201,9 +217,19 @@ BulldozerC.prototype.taskHandler = function (handlerContext) {
         let data = handlerContext.data;
         try {
             mainProgram.emit(data.next, handlerContext);
+            selfc.getCounter({
+                'key': 'bulldozer_c_parse',
+                'type': handlerContext.queueName + '_' + handlerContext.data.next,
+                'event': 'succ'
+            }).inc();
         } catch (e) {
             console.error('[%s] 解析异常 %s', handlerContext.uuid, e);
-            selfc.retry(handlerContext);
+            selfc.getCounter({
+                'key': 'bulldozer_c_parse',
+                'type': handlerContext.queueName + '_' + handlerContext.data.next,
+                'event': 'fail'
+            }).inc();
+            //selfc.retry(handlerContext);
         }
     } else {
         console.info('[%s] task is fail', handlerContext.uuid);
@@ -229,6 +255,11 @@ BulldozerC.prototype._dataCheck = function (handlerContext) {
         return false;
     } else {
         handlerContext.nextSuccCounter.inc();
+        this.getCounter({
+            'key': 'bulldozer_c_http',
+            'type': handlerContext.queueName + '_' + handlerContext.data.next,
+            'statusCode': statusCode
+        }).inc();
         return true;
     }
 };
@@ -243,7 +274,7 @@ BulldozerC.prototype.retry = function (handlerContext) {
     } else {
         ++handlerContext.retry;
     }
-    console.log('[%s] retry: %s, url: ',handlerContext.uuid,  handlerContext.retry, handlerContext.request.options.path)
+    console.log('[%s] retry: %s, url: ', handlerContext.uuid, handlerContext.retry, handlerContext.request.options.path)
     if (handlerContext.retry > global.request_retry_count) {
         let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         selfc.retryFail(handlerContext);
@@ -477,6 +508,7 @@ BulldozerC.prototype.setProxy = function (host, port, username, password) {
     }
     global.http_proxy = {'host': host, 'port': port, 'auth': auth};
 };
+
 function Crawl() {
 }
 
