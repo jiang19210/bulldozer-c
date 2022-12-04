@@ -223,7 +223,8 @@ BulldozerC.prototype.taskHandler = function (handlerContext) {
                 'event': 'succ'
             }).inc();
         } catch (e) {
-            console.error('[%s] 解析异常 %s', handlerContext.uuid, e);
+            let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
+            console.error('[%s] 解析异常 %s;; %s', handlerContext.uuid, JSON.stringify(newHandlerContext), e);
             selfc.getCounter({
                 'key': 'bulldozer_c_parse',
                 'type': handlerContext.queueName + '_' + handlerContext.data.next,
