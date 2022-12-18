@@ -2,7 +2,7 @@
 const httpClientp = require('http-clientp');
 const httpUtils = require('./lib/http_utils');
 const dbClient = require('./lib/db_client');
-const uuid = require('node-uuid');
+const nodeuuid = require('node-uuid');
 const debug = require('debug');
 const pmx = require('pmx');
 const cheerio = require("cheerio");
@@ -108,7 +108,7 @@ BulldozerC.prototype._runTask = function (collection, mainProgram, taskName, int
 
                         handlerContext.mainProgram = mainProgram;
                         try {
-                            handlerContext.uuid = uuid();
+                            handlerContext.uuid = nodeuuid();
                             handlerContext.operation = operation;
                             self.metrics(handlerContext, httpcontext);
                             self.startRequest(handlerContext);
@@ -178,7 +178,7 @@ BulldozerC.prototype.startRequest = function (handlerContext) {
 };
 //单个请求链路测试入口
 BulldozerC.prototype.testDelayStartRequest = function (handlerContext) {
-    handlerContext.uuid = uuid();
+    handlerContext.uuid = nodeuuid();
     handlerContext.operation = 'test-operation';
     let self = this;
     this.metrics(handlerContext, {'request': {'postdata': {'name': 'test-queueName'}}});
@@ -202,7 +202,7 @@ BulldozerC.prototype.taskHandler = function (handlerContext) {
     if (handlerContext.request.postdata) {
         xpostdata = JSON.stringify(handlerContext.request.postdata);
     }
-    console.info('[%s] response url %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, xpostdata, xretry);
+    console.info('[%s] response url %s, statysCode %s, postdata %s, retry %s', handlerContext.uuid, handlerContext.request.options.path, handlerContext.response.statusCode, xpostdata, xretry);
     if (selfc._dataCheck(handlerContext)) {
         let mainProgram = handlerContext.mainProgram;
         delete handlerContext.request.options.headers;
@@ -230,13 +230,15 @@ BulldozerC.prototype.taskHandler = function (handlerContext) {
                 'type': handlerContext.queueName + '_' + handlerContext.data.next,
                 'event': 'fail'
             }).inc();
-            //selfc.retry(handlerContext);
+            selfc.parseFailHandler(handlerContext);
         }
     } else {
         console.info('[%s] task is fail', handlerContext.uuid);
     }
 };
-
+BulldozerC.prototype.parseFailHandler = function (handlerContext) {
+    selfc.retry(handlerContext);
+};
 BulldozerC.prototype._dataCheck = function (handlerContext) {
     let statusCode = handlerContext.response.statusCode;
     if (!statusCode || !this.dataCheck(handlerContext) || handlerContext.response.statusCode > 399) {
@@ -309,6 +311,16 @@ BulldozerC.prototype.setTaskState = function (state) {
     } else if (2 === state) {
         global.TASK_SCHEDULE_ENABLE = true;
     }
+};
+
+BulldozerC.prototype.suspend = function (queue) {
+   selfc.setTaskState(0);
+   dbClient.setTaskState(queue, '0000');
+};
+
+BulldozerC.prototype.restart = function (queue) {
+    selfc.setTaskState(1);
+    dbClient.setTaskState(queue, '00');
 };
 
 /**
@@ -520,6 +532,16 @@ BulldozerC.prototype.newCrawl = function () {
 let singleton = new Crawl();
 BulldozerC.prototype.newSingletonCrawl = function () {
     return singleton;
+};
+
+BulldozerC.prototype.log = function (message, handlerContext) {
+    let uuid = null;
+    if (handlerContext) {
+        uuid = handlerContext.uuid;
+    } else {
+        uuid = nodeuuid();
+    }
+    console.log('[%s] - [%s]', uuid, message);
 };
 
 module.exports = BulldozerC;

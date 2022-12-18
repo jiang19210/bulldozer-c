@@ -263,3 +263,9 @@ crawl.on('1718', function (prehandlerContext) {
 ~~~~
  1. 增加setProxy(host, port, username, password), 支持设置代理用户名及密码
 ~~~~
+* 0.0.69
+~~~~
+ 1. parseFailHandler(handlerContext)  解析失败后执行的方法，默认重试
+ 2. suspend(queue) restart(queue)     暂停和重启手动方法
+ 3. log(message, handlerContext)      增加日志打印
+~~~~
