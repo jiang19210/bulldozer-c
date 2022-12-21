@@ -122,6 +122,7 @@ BulldozerC.prototype._runTask = function (collection, mainProgram, taskName, int
     );
 };
 BulldozerC.prototype.runTask = function (collection, mainProgram, taskName, intervalTime, operation, delayTime) {
+    selfc.restart(collection.name);
     if (!delayTime) {
         delayTime = 1;
     }
@@ -313,14 +314,20 @@ BulldozerC.prototype.setTaskState = function (state) {
     }
 };
 
-BulldozerC.prototype.suspend = function (queue) {
-   selfc.setTaskState(0);
-   dbClient.setTaskState(queue, '0000');
+BulldozerC.prototype.hook = function (queueName, method) {
+
 };
 
-BulldozerC.prototype.restart = function (queue) {
-    selfc.setTaskState(1);
-    dbClient.setTaskState(queue, '00');
+BulldozerC.prototype.suspend = function (queueName) {
+    selfc.setTaskState(0);
+    dbClient.setTaskState(queueName, '0000');
+    selfc.hook(queueName, 'suspend');
+};
+
+BulldozerC.prototype.restart = function (queueName) {
+    selfc.setTaskState(2);
+    dbClient.setTaskState(queueName, '00');
+    selfc.hook(queueName, 'restart');
 };
 
 /**
@@ -391,15 +398,18 @@ setInterval(function () {
             let self = selfc;
             if (result.result === '0000') {
                 self.setTaskState(0);
+                self.hook(queueName, 'taskSuspend');
                 //global.loadHrTime[queueName] = process.hrtime();
                 //global.loadHrTime['default'] = global.loadHrTime[queueName];
-                console.info('===============================TaskStop===============================');
+                console.info('===============================taskSuspend===============================');
             } else if (self.taskIsEnable() && self.taskIsEnd(global.TASK_TIMEOUT, queueName)) {
                 self.setTaskState(1);
-                console.info('===============================taskHandler===============================');
+                self.hook(queueName, 'taskRecover');
+                console.info('===============================taskRecover===============================');
             } else if (!self.taskIsEnable() && self.taskIsStopMin(global.TASK_RESTORE_TIME)) {
                 self.setTaskState(2);
-                console.info('===============================TaskReStart===============================');
+                self.hook(queueName, 'taskReStart');
+                console.info('===============================taskReStart===============================');
             }
         });
     }
