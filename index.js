@@ -243,6 +243,7 @@ BulldozerC.prototype.parseFailHandler = function (handlerContext) {
 BulldozerC.prototype._dataCheck = function (handlerContext) {
     let statusCode = handlerContext.response.statusCode;
     if (!statusCode || !this.dataCheck(handlerContext) || handlerContext.response.statusCode > 399) {
+        statusCode = handlerContext.response.statusCode;
         if (statusCode === 404) {
             handlerContext.retry = 404;
         }
@@ -269,19 +270,25 @@ BulldozerC.prototype._dataCheck = function (handlerContext) {
 };
 
 BulldozerC.prototype.dataCheck = function (handlerContext) {
-    return true;
+    let statusCode = handlerContext.response.statusCode;
+    if (statusCode == 200) {
+        return true;
+    } else {
+        return false;
+    }
 };
 
 BulldozerC.prototype.retry = function (handlerContext) {
     if (!handlerContext.retry) {
         handlerContext.retry = 1;
-    } else {
+    } else if (handlerContext.response.statusCode && handlerContext.response.statusCode != 504) {
         ++handlerContext.retry;
     }
     console.log('[%s] retry: %s, url: ', handlerContext.uuid, handlerContext.retry, handlerContext.request.options.path)
     if (handlerContext.retry > global.request_retry_count) {
         let newHandlerContext = httpUtils.copyHttpcontext(handlerContext);
         selfc.retryFail(handlerContext);
+        delete newHandlerContext.request.options.headers
         if (handlerContext.retry < 100) {
             console.error('[%s] %s_retry_fail_%s:%s', handlerContext.uuid, handlerContext.response.statusCode, handlerContext.retry, JSON.stringify(newHandlerContext));
         } else {
